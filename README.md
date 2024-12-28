@@ -27,11 +27,11 @@ Follow these steps to set up and play the game:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/DrKins/react-game-portfolio.git
+   git clone https://github.com/DrKins/react-canvas-game.git
    ```
 2. Navigate into the project folder:
    ```bash
-   cd react-game-portfolio
+   cd react-canvas-game
    ```
 3. Install the required dependencies:
    ```bash
