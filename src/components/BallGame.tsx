@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type BallMove = "left" | "right";
+type BallMove = "left" | "right" | "up" | "down";
 
 interface Position {
   x: number;
@@ -8,32 +8,64 @@ interface Position {
 }
 
 interface Props {
-  shouldHide: () => void;
   updateScore: () => void;
+  updateLives: () => void;
+  winGame: () => void;
 }
 
-export const BallGame: React.FC<Props> = ({ shouldHide, updateScore }) => {
+function randomIntFromInterval(min: number, max: number): number {
+  // min and max included
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+export const BallGame: React.FC<Props> = ({
+  updateScore,
+  updateLives,
+  winGame,
+}) => {
   const [ballPosition, setBallPosition] = useState<Position>({
     x: window.innerWidth - window.innerWidth / 2 - 40,
-    y: 200,
+    y: 400,
   });
 
   const [obsticlesPosition, setObsticlesPosition] = useState<Array<Position>>([
     {
-      x: Math.floor(Math.random() * 201) + 500,
-      y: 500,
+      x: randomIntFromInterval(300, 900),
+      y: 800,
     },
   ]);
   const handleMove = (side: BallMove) => {
-    shouldHide();
     if (side === "left") {
       console.log("left");
-      setBallPosition((prev) => ({ ...prev, x: prev.x - 50 }));
+      setBallPosition((prev) => ({
+        ...prev,
+        x: prev.x - 75,
+      }));
       return;
     }
     if (side === "right") {
-      setBallPosition((prev) => ({ ...prev, x: prev.x + 50 }));
+      setBallPosition((prev) => ({
+        ...prev,
+        x: prev.x + 75,
+      }));
       console.log("right");
+      return;
+    }
+
+    if (side === "up") {
+      setBallPosition((prev) => ({
+        ...prev,
+        y: prev.y - 75,
+      }));
+      console.log("up");
+      return;
+    }
+    if (side === "down") {
+      setBallPosition((prev) => ({
+        ...prev,
+        y: prev.y + 75,
+      }));
+      console.log("down");
       return;
     }
   };
@@ -46,20 +78,48 @@ export const BallGame: React.FC<Props> = ({ shouldHide, updateScore }) => {
       if (e.key === "ArrowRight") {
         handleMove("right");
       }
+      if (e.key === "ArrowUp") {
+        handleMove("up");
+      }
+      if (e.key === "ArrowDown") {
+        handleMove("down");
+      }
     };
     const gravity = setInterval(() => {
-      setBallPosition((prev) => ({ ...prev, y: prev.y + 10 }));
+      setObsticlesPosition((prev) =>
+        prev
+          .map((obsticle) => ({
+            ...obsticle,
+            y: obsticle.y - 10 * prev.length,
+          }))
+          .filter((obsticle) => {
+            if (obsticle.y > -75) return obsticle;
+            updateLives();
+            return undefined;
+          }),
+      );
     }, 200);
 
     const obsticles = setInterval(() => {
-      setObsticlesPosition((prev) => [
-        ...prev,
-        {
-          x: Math.floor(Math.random() * 201) + 500,
-          y: obsticlesPosition[obsticlesPosition.length - 1].y + 400,
-        },
-      ]);
-    }, 2500);
+      setObsticlesPosition((prev) => {
+        const x =
+          prev[prev.length - 1]?.x + randomIntFromInterval(-300, 300) >
+            window.innerWidth ||
+          prev[prev.length - 1]?.x + randomIntFromInterval(-300, 300) < 0
+            ? randomIntFromInterval(300, 900)
+            : prev[prev.length - 1]?.x + randomIntFromInterval(-300, 300);
+        if (prev[prev.length - 1] === undefined) {
+          winGame();
+        }
+        return [
+          ...prev,
+          {
+            x,
+            y: window.innerHeight / 2 + window.innerHeight / 4,
+          },
+        ];
+      });
+    }, 1000);
 
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("mousedown", (e) => e.preventDefault());
@@ -108,11 +168,13 @@ export const BallGame: React.FC<Props> = ({ shouldHide, updateScore }) => {
           position: "absolute",
           left: `${ballPosition.x}px`,
           top: `${ballPosition.y}px`,
-          transition: "top 0.2s ease",
+          transition: "left 0.1s ease, top 0.1s ease",
         }}></div>
 
-      {obsticlesPosition.map((obsticle) => (
+      {obsticlesPosition.map((obsticle, index) => (
         <div
+          key={index}
+          className="puff-in-center"
           style={{
             width: "75px",
             height: "75px",
@@ -120,7 +182,7 @@ export const BallGame: React.FC<Props> = ({ shouldHide, updateScore }) => {
             position: "absolute",
             left: `${obsticle.x}px`,
             top: `${obsticle.y}px`,
-            transition: "top 0.2s ease",
+            filter: "blur(50px)",
           }}></div>
       ))}
     </>
