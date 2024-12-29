@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { randomIntFromInterval } from "../utils/randomIntFromInterval";
 
 type Position = {
@@ -13,6 +13,7 @@ interface CanvasProps {
   lives: number;
   setScore: (score: number) => void;
   setLives: (lives: number) => void;
+  winGame: () => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -20,12 +21,23 @@ export const Canvas: React.FC<CanvasProps> = ({
   setScore,
   lives,
   setLives,
+  winGame,
 }) => {
+  const [maxObstacles, setMaxObstacles] = useState(5);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<Position>({ x: window.innerWidth / 2, y: 100 });
+  const playerRef = useRef<Position>({
+    x: 400,
+    y: Math.min(0 + randomIntFromInterval(300, 600), 300),
+  });
   const obstaclesRef = useRef<Position[]>([
-    { x: 300, y: 400 },
-    { x: 500, y: 500 },
+    {
+      x: randomIntFromInterval(0, window.innerWidth - 50),
+      y: playerRef.current.y + randomIntFromInterval(200, 400),
+    },
+    {
+      x: randomIntFromInterval(0, window.innerWidth - 50),
+      y: playerRef.current.y + randomIntFromInterval(500, 600),
+    },
   ]);
 
   const draw = (ctx: CanvasRenderingContext2D) => {
@@ -45,29 +57,33 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   const handleMove = (side: BallMove) => {
-    if (side === "left") {
-      playerRef.current.x -= 15;
-      return;
-    }
-    if (side === "right") {
-      playerRef.current.x += 15;
-      return;
-    }
-
-    if (side === "up") {
-      playerRef.current.y -= 15;
-      return;
-    }
-    if (side === "down") {
-      playerRef.current.y += 15;
-      return;
+    switch (side) {
+      case "left":
+        playerRef.current.x -= 45;
+        break;
+      case "right":
+        playerRef.current.x += 45;
+        break;
+      case "up":
+        playerRef.current.y -= 45;
+        break;
+      case "down":
+        playerRef.current.y += 45;
+        break;
+      default:
+        console.error("Invalid move");
+        break;
     }
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas!.width = window.innerWidth;
-    canvas!.height = window.innerHeight;
+    if (canvas) {
+      const containerWidth = window.innerWidth;
+      const containerHeight = window.innerHeight;
+      canvas.width = containerWidth; // Limit width for visibility
+      canvas.height = containerHeight;
+    }
     const context = canvas?.getContext("2d");
     let frameCount = 0;
     let animationFrameId: number;
@@ -98,11 +114,14 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     // Function to add a new obstacle every second
     const addObstacle = () => {
-      if (obstaclesRef.current.length >= 5) return;
+      if (obstaclesRef.current.length >= maxObstacles) return;
 
       const newObstacle: Position = {
-        x: randomIntFromInterval(200, 600),
-        y: playerRef.current.y + randomIntFromInterval(300, 600),
+        x: randomIntFromInterval(0, window.innerWidth - 50),
+        y: Math.min(
+          playerRef.current.y + randomIntFromInterval(300, 600),
+          window.innerHeight - 50,
+        ),
       };
 
       let isCollidingWithOtherObstacles = true;
@@ -110,14 +129,16 @@ export const Canvas: React.FC<CanvasProps> = ({
         isCollidingWithOtherObstacles = false;
         obstaclesRef.current.forEach((obstacle) => {
           if (
-            obstacle.x < newObstacle.x + 50 &&
-            obstacle.x + 50 > newObstacle.x &&
-            obstacle.y < newObstacle.y + 50 &&
-            obstacle.y + 50 > newObstacle.y
+            obstacle.x < newObstacle.x + 100 &&
+            obstacle.x + 100 > newObstacle.x &&
+            obstacle.y < newObstacle.y + 100 &&
+            obstacle.y + 100 > newObstacle.y
           ) {
-            newObstacle.x = randomIntFromInterval(200, 600);
-            newObstacle.y =
-              playerRef.current.y + randomIntFromInterval(300, 500);
+            (newObstacle.x = randomIntFromInterval(0, window.innerWidth - 50)),
+              (newObstacle.y = Math.min(
+                playerRef.current.y + randomIntFromInterval(300, 600),
+                window.innerHeight - 50,
+              ));
             isCollidingWithOtherObstacles = true;
           }
         });
@@ -127,6 +148,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     };
 
     const moveObstacleAndDetectCollision = () => {
+      if (obstaclesRef.current.length === 0) {
+        winGame();
+        return;
+      }
+
       obstaclesRef.current = obstaclesRef.current.filter((obstacle) => {
         const isOffScreen = obstacle.y > -50;
 
@@ -146,6 +172,9 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         if (isColliding) {
           setScore(score + 1);
+          if (score % 5 === 0 && score > 0) {
+            setMaxObstacles((prev) => prev + 1);
+          }
           return false;
         }
         return true;
@@ -157,7 +186,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    const obstacleInterval = setInterval(addObstacle, 1000);
+    const obstacleInterval = setInterval(addObstacle, 750);
     const gravitiyInterval = setInterval(moveObstacleAndDetectCollision, 50);
 
     const render = () => {

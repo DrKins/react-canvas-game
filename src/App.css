@@ -2,42 +2,86 @@
   overflow: hidden;
   margin: 0;
   padding: 0;
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Montserrat", serif;
 }
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
   text-align: center;
   margin-bottom: 100%;
 }
 
+.header-info {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+  gap: 8px;
+}
+
 .title {
-  position: fixed;
-  left: 32px;
-  top: 32px;
   text-transform: uppercase;
-  font-size: 32px;
-  font-weight: normal;
+  font-size: 2em;
+  font-weight: 300;
+}
+
+.high-score {
+  text-transform: uppercase;
+  font-size: 1.5em;
+  font-weight: 500;
 }
 
 .score {
-  position: fixed;
-  left: 32px;
-  top: 68px;
   text-transform: uppercase;
-  font-size: 32px;
-  font-weight: normal;
-  color: green;
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #ffb703;
 }
 
 .lives {
-  position: fixed;
-  left: 32px;
-  top: 100px;
   text-transform: uppercase;
-  font-size: 32px;
+  font-size: 1.5em;
+  font-weight: 600;
+}
+
+.end-game-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 2em;
   font-weight: normal;
   color: red;
+}
+
+.end-game-text__title {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: initial;
+  color: #ffb703;
+}
+.end-game-text__score {
+  font-size: 1em;
+  font-weight: 600;
+  color: initial;
+}
+
+.end-game-text__button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  border: 1px solid #ffb703;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #ffb703;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.end-game-text__button:hover {
+  background-color: #ffb703;
+  color: #fff;
+  border: 1px solid #ffb703;
 }
