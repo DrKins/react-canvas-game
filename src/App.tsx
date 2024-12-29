@@ -12,7 +12,9 @@ function App() {
         <section>
           <h1 className="title">React game</h1>
           <div className="score">Score: {score}</div>
-          <div className="lives">Lives: {lives}</div>
+          <div className="lives">
+            Lives: {new Array(lives).fill("❤️").join("")}
+          </div>
         </section>
       )}
       {!!lives ? (

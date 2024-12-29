@@ -102,8 +102,27 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       const newObstacle: Position = {
         x: randomIntFromInterval(200, 600),
-        y: playerRef.current.y + randomIntFromInterval(300, 500),
+        y: playerRef.current.y + randomIntFromInterval(300, 600),
       };
+
+      let isCollidingWithOtherObstacles = true;
+      while (isCollidingWithOtherObstacles) {
+        isCollidingWithOtherObstacles = false;
+        obstaclesRef.current.forEach((obstacle) => {
+          if (
+            obstacle.x < newObstacle.x + 50 &&
+            obstacle.x + 50 > newObstacle.x &&
+            obstacle.y < newObstacle.y + 50 &&
+            obstacle.y + 50 > newObstacle.y
+          ) {
+            newObstacle.x = randomIntFromInterval(200, 600);
+            newObstacle.y =
+              playerRef.current.y + randomIntFromInterval(300, 500);
+            isCollidingWithOtherObstacles = true;
+          }
+        });
+      }
+
       obstaclesRef.current.push(newObstacle);
     };
 
