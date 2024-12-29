@@ -8,12 +8,24 @@ type Position = {
 
 type BallMove = "left" | "right" | "up" | "down";
 
-export const Canvas = () => {
+interface CanvasProps {
+  score: number;
+  lives: number;
+  setScore: (score: number) => void;
+  setLives: (lives: number) => void;
+}
+
+export const Canvas: React.FC<CanvasProps> = ({
+  score,
+  setScore,
+  lives,
+  setLives,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<Position>({ x: window.innerWidth / 2, y: 100 });
   const obstaclesRef = useRef<Position[]>([
-    { x: 500, y: 600 },
-    { x: 700, y: 500 },
+    { x: 300, y: 400 },
+    { x: 500, y: 500 },
   ]);
 
   const draw = (ctx: CanvasRenderingContext2D) => {
@@ -34,24 +46,20 @@ export const Canvas = () => {
 
   const handleMove = (side: BallMove) => {
     if (side === "left") {
-      console.log("left");
-      playerRef.current.x -= 75;
+      playerRef.current.x -= 15;
       return;
     }
     if (side === "right") {
-      playerRef.current.x += 75;
-      console.log("right");
+      playerRef.current.x += 15;
       return;
     }
 
     if (side === "up") {
-      playerRef.current.y -= 75;
-      console.log("up");
+      playerRef.current.y -= 15;
       return;
     }
     if (side === "down") {
-      playerRef.current.y += 75;
-      console.log("down");
+      playerRef.current.y += 15;
       return;
     }
   };
@@ -65,6 +73,15 @@ export const Canvas = () => {
     let animationFrameId: number;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      obstaclesRef.current.forEach((obstacle) => {
+        if (
+          obstacle.x === playerRef.current.x &&
+          obstacle.y === playerRef.current.y
+        ) {
+          console.log("Game Over");
+        }
+      });
+
       if (e.key === "ArrowLeft") {
         handleMove("left");
       }
@@ -84,34 +101,45 @@ export const Canvas = () => {
       if (obstaclesRef.current.length >= 5) return;
 
       const newObstacle: Position = {
-        x: randomIntFromInterval(200, 900),
-        y: playerRef.current.y + randomIntFromInterval(400, 900),
+        x: randomIntFromInterval(200, 600),
+        y: playerRef.current.y + randomIntFromInterval(300, 500),
       };
       obstaclesRef.current.push(newObstacle);
     };
 
-    // Function to move the obstacles up
-    const moveObstacle = () => {
-      // Remove obstacles that are off the screen
-      obstaclesRef.current = obstaclesRef.current.filter(
-        (obstacle) =>
-          obstacle.y > -50 &&
-          !(
-            obstacle.x < playerRef.current.x + 30 &&
-            obstacle.x + 30 > playerRef.current.x &&
-            obstacle.y < playerRef.current.y + 75 &&
-            obstacle.y + 75 > playerRef.current.y
-          ),
-      );
+    const moveObstacleAndDetectCollision = () => {
+      obstaclesRef.current = obstaclesRef.current.filter((obstacle) => {
+        const isOffScreen = obstacle.y > -50;
+
+        if (!isOffScreen) {
+          setLives(lives - 1);
+          return false;
+        }
+        return true;
+      });
+
+      obstaclesRef.current = obstaclesRef.current.filter((obstacle) => {
+        const isColliding =
+          obstacle.x > playerRef.current.x - 80 &&
+          obstacle.x < playerRef.current.x + 30 &&
+          obstacle.y > playerRef.current.y - 80 &&
+          obstacle.y < playerRef.current.y + 30;
+
+        if (isColliding) {
+          setScore(score + 1);
+          return false;
+        }
+        return true;
+      });
 
       obstaclesRef.current.forEach((obstacle) => {
-        obstacle.y -= 5;
+        obstacle.y -= 2;
       });
     };
 
     document.addEventListener("keydown", handleKeyDown);
     const obstacleInterval = setInterval(addObstacle, 1000);
-    const gravitiyInterval = setInterval(moveObstacle, 100);
+    const gravitiyInterval = setInterval(moveObstacleAndDetectCollision, 50);
 
     const render = () => {
       frameCount++;

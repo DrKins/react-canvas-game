@@ -21,3 +21,23 @@
   font-size: 32px;
   font-weight: normal;
 }
+
+.score {
+  position: fixed;
+  left: 32px;
+  top: 68px;
+  text-transform: uppercase;
+  font-size: 32px;
+  font-weight: normal;
+  color: green;
+}
+
+.lives {
+  position: fixed;
+  left: 32px;
+  top: 100px;
+  text-transform: uppercase;
+  font-size: 32px;
+  font-weight: normal;
+  color: red;
+}
