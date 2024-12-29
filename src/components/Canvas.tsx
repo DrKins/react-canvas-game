@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { intersects } from "../utils/intersects";
 import { randomIntFromInterval } from "../utils/randomIntFromInterval";
 
 type Position = {
@@ -23,11 +24,17 @@ export const Canvas: React.FC<CanvasProps> = ({
   setLives,
   winGame,
 }) => {
+  const [target, setTarget] = useState<Position | { x: null; y: null }>({
+    x: null,
+    y: null,
+  });
   const [maxObstacles, setMaxObstacles] = useState(5);
+  const [ballRadius, setBallRadius] = useState(20);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<Position>({
+  const playerRef = useRef<Position & { speed: number }>({
     x: 400,
     y: Math.min(0 + randomIntFromInterval(300, 600), 300),
+    speed: 10,
   });
   const obstaclesRef = useRef<Position[]>([
     {
@@ -46,7 +53,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Draw the circle
     ctx.fillStyle = "#FFB703";
     ctx.beginPath();
-    ctx.arc(playerRef.current.x, playerRef.current.y, 30, 0, 2 * Math.PI);
+    ctx.arc(
+      playerRef.current.x,
+      playerRef.current.y,
+      ballRadius,
+      0,
+      2 * Math.PI,
+    );
     ctx.fill();
 
     // Draw the obstacles
@@ -57,18 +70,27 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   const handleMove = (side: BallMove) => {
+    const { speed } = playerRef.current;
     switch (side) {
       case "left":
-        playerRef.current.x -= 45;
+        playerRef.current.x -= speed;
+        target.x = playerRef.current.x;
+        target.y = playerRef.current.y;
         break;
       case "right":
-        playerRef.current.x += 45;
+        playerRef.current.x += speed;
+        target.x = playerRef.current.x;
+        target.y = playerRef.current.y;
         break;
       case "up":
-        playerRef.current.y -= 45;
+        playerRef.current.y -= speed;
+        target.x = playerRef.current.x;
+        target.y = playerRef.current.y;
         break;
       case "down":
-        playerRef.current.y += 45;
+        playerRef.current.y += speed;
+        target.x = playerRef.current.x;
+        target.y = playerRef.current.y;
         break;
       default:
         console.error("Invalid move");
@@ -89,15 +111,6 @@ export const Canvas: React.FC<CanvasProps> = ({
     let animationFrameId: number;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      obstaclesRef.current.forEach((obstacle) => {
-        if (
-          obstacle.x === playerRef.current.x &&
-          obstacle.y === playerRef.current.y
-        ) {
-          console.log("Game Over");
-        }
-      });
-
       if (e.key === "ArrowLeft") {
         handleMove("left");
       }
@@ -164,16 +177,20 @@ export const Canvas: React.FC<CanvasProps> = ({
       });
 
       obstaclesRef.current = obstaclesRef.current.filter((obstacle) => {
-        const isColliding =
-          obstacle.x > playerRef.current.x - 80 &&
-          obstacle.x < playerRef.current.x + 30 &&
-          obstacle.y > playerRef.current.y - 80 &&
-          obstacle.y < playerRef.current.y + 30;
+        const isColliding = intersects({
+          circle: {
+            x: playerRef.current.x,
+            y: playerRef.current.y,
+            r: ballRadius,
+          },
+          rect: { x: obstacle.x, y: obstacle.y, width: 50, height: 50 },
+        });
 
         if (isColliding) {
           setScore(score + 1);
           if (score % 5 === 0 && score > 0) {
             setMaxObstacles((prev) => prev + 1);
+            //setBallRadius((prev) => prev + 10);
           }
           return false;
         }
@@ -187,7 +204,10 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     const obstacleInterval = setInterval(addObstacle, 750);
-    const gravitiyInterval = setInterval(moveObstacleAndDetectCollision, 50);
+    const gravitiyInterval = setInterval(() => {
+      moveObstacleAndDetectCollision();
+      movePlayerOnClick();
+    }, 50);
 
     const render = () => {
       frameCount++;
@@ -203,6 +223,31 @@ export const Canvas: React.FC<CanvasProps> = ({
       clearInterval(gravitiyInterval);
     };
   }, [draw]);
+  const handleMoveClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      setTarget({ x, y });
+    }
+  };
 
-  return <canvas ref={canvasRef}></canvas>;
+  const movePlayerOnClick = () => {
+    const { x, y, speed } = playerRef.current;
+
+    const dx = target.x! - x;
+    const dy = target.y! - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (!target.x && !target.y) {
+    } else if (distance > speed) {
+      playerRef.current.x += (dx / distance) * speed;
+      playerRef.current.y += (dy / distance) * speed;
+    } else {
+      playerRef.current.x = target.x!;
+      playerRef.current.y = target.y!;
+    }
+  };
+
+  return <canvas ref={canvasRef} onClick={handleMoveClick}></canvas>;
 };
