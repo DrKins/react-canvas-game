@@ -1,13 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { intersectsRect } from "../utils/intersects";
 
-interface CanvasWithSeparateSpritesProps {
+interface CanvasProps {
   score: number;
   setScore: () => void;
 }
-const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
-  setScore,
-}) => {
+const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -27,6 +25,23 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
     // background field sprite sheet
     const fieldAssetsSpriteSheet = new Image();
     fieldAssetsSpriteSheet.src = "/src/assets/assets.png";
+
+    const fieldAssetsWidth = 156;
+    const fieldAssetsHeight = 256;
+    const fieldAssetsSpeed = 4;
+    const fieldAssetsSpawnInterval = 400; // Spawn a new tree every 1 second
+    let lastFieldAssetsSpawnTime = 0;
+    const trees: { x: number; y: number; sx: number }[] = [];
+
+    // Function to spawn a new tree
+    const spawnTree = () => {
+      const randomX =
+        Math.random() < 0.5
+          ? Math.random() * minXTree // Spawn left of minX
+          : Math.random() * (window.innerWidth - maxXTree) + maxXTree; // Spawn right of maxX
+      const randomSx = getRandomSx(); // Get a random `sx` value
+      trees.push({ x: randomX, y: -fieldAssetsHeight, sx: randomSx });
+    };
 
     const fieldWallsSpriteSheet = new Image();
     fieldWallsSpriteSheet.src = "/src/assets/walls.png";
@@ -61,7 +76,7 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
     const playerScale = 1.5; // Scale factor for the player
     const playerFrameDelay = 100; // Frame delay in milliseconds
     let lastPlayerFrameTime = 0;
-    let playerSpeed = 38; // Speed of the player
+    let playerSpeed = 0.15; // Speed of the player
 
     // Enemy sprite sheet
     const enemySpriteSheet = new Image();
@@ -112,6 +127,13 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
       );
     };
 
+    const minXTree = 32 * (centerTilePerRow - 6);
+    const maxXTree = 32 * (centerTilePerRow + 6);
+
+    const getRandomSx = () => {
+      const options = [0, 180, 360];
+      return options[Math.floor(Math.random() * options.length)];
+    };
     // Animation loop
     const animate = (timestamp: number) => {
       if (!ctx) return;
@@ -200,7 +222,7 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
         );
       });
 
-      // Add a new enemy every second
+      // Add a new enemy every half a second
       if (timestamp - lastEnemyAddTime > 500 && enemyPositions.length < 10) {
         enemyPositions.push({
           x: [
@@ -215,32 +237,44 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
         lastEnemyAddTime = timestamp;
       }
 
-      //draw left tree
-      ctx.drawImage(
-        fieldAssetsSpriteSheet,
-        0,
-        0,
-        156,
-        256,
-        32 * (centerTilePerRow - 6),
-        100,
-        156,
-        256,
-      );
-      //draw right tree
-      ctx.drawImage(
-        fieldAssetsSpriteSheet,
-        0,
-        0,
-        156,
-        256,
-        32 * (centerTilePerRow + 3),
-        300,
-        156,
-        256,
-      );
+      // Update and draw trees
+      trees.forEach((tree, index) => {
+        tree.y += fieldAssetsSpeed; // Move tree downward
 
-      // Update player frame
+        // Only draw trees that fall within the restricted range
+        if (tree.x < minXTree || tree.x > maxXTree) {
+          ctx.drawImage(
+            fieldAssetsSpriteSheet,
+            tree.sx,
+            0,
+            fieldAssetsWidth,
+            fieldAssetsHeight,
+            tree.x,
+            tree.y,
+            fieldAssetsWidth,
+            fieldAssetsHeight,
+          );
+        }
+
+        // Remove tree if it goes offscreen
+        if (tree.y > canvas.height) {
+          trees.splice(index, 1);
+        }
+      });
+
+      // Spawn a new tree at intervals
+      if (timestamp - lastFieldAssetsSpawnTime > fieldAssetsSpawnInterval) {
+        spawnTree();
+        lastFieldAssetsSpawnTime = timestamp;
+      }
+
+      // Update player position
+      playerY -= playerSpeed;
+
+      // Reset player position if offscreen
+      if (playerY < -playerSpriteHeight) {
+        playerY = canvas.height;
+      }
       if (timestamp - lastPlayerFrameTime > playerFrameDelay) {
         playerCurrentFrame = Math.max(
           (playerCurrentFrame + 1) % playerTotalFrames,
@@ -323,4 +357,4 @@ const CanvasWithSeparateSprites: React.FC<CanvasWithSeparateSpritesProps> = ({
   return <canvas ref={canvasRef} />;
 };
 
-export default CanvasWithSeparateSprites;
+export default Canvas;

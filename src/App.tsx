@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./App.css";
-import CanvasWithSpriteSheet from "./components/CanvasWithSprite";
+import Canvas from "./components/Canvas";
 
 function App() {
   const [score, setScore] = useState(0);
@@ -13,10 +13,7 @@ function App() {
           <div className="score">Score: {score}</div>
         </section>
       }
-      <CanvasWithSpriteSheet
-        score={score}
-        setScore={() => setScore((prev) => prev + 1)}
-      />
+      <Canvas score={score} setScore={() => setScore((prev) => prev + 1)} />
     </div>
   );
 }
