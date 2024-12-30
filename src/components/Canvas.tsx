@@ -3,9 +3,9 @@ import { intersectsRect } from "../utils/intersects";
 
 interface CanvasProps {
   score: number;
-  setScore: () => void;
+  setScore: (score: number) => void;
 }
-const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
+const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
         Math.random() < 0.5
           ? Math.random() * minXTree // Spawn left of minX
           : Math.random() * (window.innerWidth - maxXTree) + maxXTree; // Spawn right of maxX
-      const randomSx = getRandomSx(); // Get a random `sx` value
+      const randomSx = getRandomSx("tree"); // Get a random `sx` value
       trees.push({ x: randomX, y: -fieldAssetsHeight, sx: randomSx });
     };
 
@@ -57,12 +57,6 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
     const tilesPerCol = viewportHeight / fieldSpriteWidth; // Example 18.75 (~19 tiles)
     const centerTilePerRow = Math.floor(tilesPerRow / 2);
 
-    const tilemap = Array.from({ length: tilesPerCol }, () =>
-      Array.from({ length: tilesPerRow }, (_, i) =>
-        i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2 ? 32 : 37,
-      ),
-    );
-
     // Player sprite sheet
     const playerSpriteSheet = new Image();
     playerSpriteSheet.src = "/src/assets/player.png";
@@ -76,14 +70,14 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
     const playerScale = 1.5; // Scale factor for the player
     const playerFrameDelay = 100; // Frame delay in milliseconds
     let lastPlayerFrameTime = 0;
-    let playerSpeed = 0.15; // Speed of the player
+    let playerSpeed = 32; // Speed of the player
 
     // Enemy sprite sheet
     const enemySpriteSheet = new Image();
     enemySpriteSheet.src = "/src/assets/enemy.png";
 
-    const enemySpriteWidth = 64; // Width of a single enemy sprite
-    const enemySpriteHeight = 64; // Height of a single enemy sprite
+    const enemySpriteWidth = 16; // Width of a single enemy sprite
+    const enemySpriteHeight = 16; // Height of a single enemy sprite
     const enemyTotalFrames = 8; // Total frames in the enemy sprite sheet
     let enemyCurrentFrame = 0; // Current frame of the enemy animation
     const enemyPositions = [
@@ -98,7 +92,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
         animationSpeed: 100,
       },
     ];
-    const enemyScale = 1; // Scale factor for enemies
+    const enemyScale = 2; // Scale factor for enemies
     let lastEnemyFrameTime = 0;
     let lastEnemyAddTime = 0;
     const enemySpeed = 2; // Speed of enemies
@@ -127,21 +121,48 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
       );
     };
 
-    const minXTree = 32 * (centerTilePerRow - 6);
-    const maxXTree = 32 * (centerTilePerRow + 6);
+    const getRandomSx = (variant: "tree" | "path-left") => {
+      let options: number[] = [];
+      if (variant === "tree") options = [0, 180, 360];
 
-    const getRandomSx = () => {
-      const options = [0, 180, 360];
+      if (variant === "path-left") options = [5, 13, 21, 29, 37, 45, 53, 61];
+
       return options[Math.floor(Math.random() * options.length)];
     };
+
+    const tilemap = Array.from({ length: tilesPerCol }, () =>
+      Array.from({ length: tilesPerRow }, (_, i) =>
+        i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2
+          ? getRandomSx("path-left")
+          : 37,
+      ),
+    );
+
+    const minXTree = 32 * (centerTilePerRow - 6);
+    const maxXTree = 32 * (centerTilePerRow + 6);
     // Animation loop
+
+    let lastTimestamp = 0;
+    let accumulatedDistance = 0;
+
     const animate = (timestamp: number) => {
       if (!ctx) return;
+
+      // Time delta for smooth animation
+      const deltaTime = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      // Control the speed (adjust this value to slow it down)
+      const speed = 100; // pixels per second
+      const distanceToMove = (deltaTime / 1000) * speed;
+
+      // Accumulate the distance
+      accumulatedDistance += distanceToMove;
 
       // Clear the canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      //draw background map of game
+      // Update and draw the tilemap
       for (let row = 0; row < tilemap.length; row++) {
         for (let col = 0; col < tilemap[row].length; col++) {
           const tileIndex = tilemap[row][col];
@@ -149,7 +170,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
           const spriteY =
             Math.floor(tileIndex / fieldTotalCols) * fieldSpriteHeight;
           const x = col * fieldSpriteWidth;
-          const y = row * fieldSpriteHeight;
+          const y = row * fieldSpriteHeight + accumulatedDistance; // Offset by accumulated distance
 
           ctx.drawImage(
             fieldSpriteSheet,
@@ -162,39 +183,24 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
             fieldSpriteWidth,
             fieldSpriteHeight,
           );
-
-          if (col === centerTilePerRow - 2) {
-            const spriteX = 32 * 9;
-            const spriteY = 32 * 1;
-            ctx.drawImage(
-              fieldWallsSpriteSheet,
-              spriteX,
-              spriteY,
-              fieldSpriteWidth,
-              fieldSpriteHeight,
-              col * 32,
-              row * fieldSpriteHeight,
-              fieldSpriteWidth,
-              fieldSpriteHeight,
-            );
-          }
-
-          if (col === centerTilePerRow + 2) {
-            const spriteX = 32 * 10;
-            const spriteY = 32 * 3;
-            ctx.drawImage(
-              fieldWallsSpriteSheet,
-              spriteX,
-              spriteY,
-              fieldSpriteWidth,
-              fieldSpriteHeight,
-              col * 32,
-              row * fieldSpriteHeight,
-              fieldSpriteWidth,
-              fieldSpriteHeight,
-            );
-          }
         }
+      }
+
+      // Check if a row is completely out of view
+      if (accumulatedDistance >= fieldSpriteHeight) {
+        // Remove the bottom row
+        tilemap.pop();
+
+        // Prepend a new row at the top
+        const newRow = Array.from({ length: tilesPerRow }, (_, i) =>
+          i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2
+            ? getRandomSx("path-left")
+            : 37,
+        );
+        tilemap.unshift(newRow);
+
+        // Reset accumulated distance
+        accumulatedDistance -= fieldSpriteHeight;
       }
 
       // Draw enemies
@@ -269,7 +275,9 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
       }
 
       // Update player position
-      playerY -= playerSpeed;
+      if (playerY > canvas.height - playerSpriteHeight * 8) {
+        playerY -= 0.5;
+      }
 
       // Reset player position if offscreen
       if (playerY < -playerSpriteHeight) {
@@ -319,7 +327,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore }) => {
           );
           if (index > -1) {
             enemyPositions.splice(index, 1);
-            setScore();
+            setScore(score + 1);
           }
         }
       });
