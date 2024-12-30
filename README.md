@@ -7,9 +7,9 @@ A simple 2D game created with React and HTML5 Canvas. The player, represented by
 ## 🔠 Features
 
 - **Player Movement:** Use the keyboard to move the yellow circle horizontally across the canvas.
-- **Obstacle Generation:** Black boxes appear dynamically and move toward the player.
-- **Collision Detection:** Destroy black boxes when they collide with the player.
-- **Gameplay Limit:** A maximum of 5 black boxes are allowed on the screen at any time.
+- **Obstacle Generation:** green slimes appear dynamically and move toward the player.
+- **Collision Detection:** Destroy green slimes when they collide with the player.
+- **Gameplay Limit:** 5 seconds delay between slime spawn.
 
 ---
 
@@ -51,10 +51,12 @@ react-canvas-game/
 ├── public/
 │   └── index.html       # Main HTML file
 ├── src/
+│   │── assets/
 │   │── utils/
 │   │   └── randomIntFromInterval.ts
+│   │   └── intersects.ts
 │   ├── components/
-│   │   └── Canvas.tsx   # The main game component
+│   │   └── CanvasWithSprite.tsx   # The main game component
 │   ├── App.tsx          # App component
 │   ├── main.tsx         # Main React file
 │   ├── index.css        # Main React styling
@@ -68,12 +70,11 @@ react-canvas-game/
 ## 🚀 Gameplay Mechanics
 
 - **Player Movement:**  
-  Controlled using keyboard inputs (`ArrowLeft`, `ArrowRight`, `ArrowUp` and `ArrowDown` ).
+  Controlled using keyboard inputs (`ArrowLeft`, `ArrowRight`).
 
 - **Obstacle Behavior:**
 
-  - Black boxes spawn dynamically up to a maximum of 5 on screen.
-  - Each box moves toward the player at a constant speed.
+  - Each slime moves toward the player at a constant speed.
 
 - **Collision Detection:**
   - When the player (yellow circle) collides with a black box, the box is destroyed and removed from the canvas.
@@ -90,7 +91,6 @@ react-canvas-game/
 
 ## 🌟 Future Enhancements
 
-- Add a scoring system to track destroyed boxes.
 - Introduce difficulty levels with faster box speeds.
 - Include sound effects and visual animations for collisions.
 - Add functionality for pausing and restarting the game.
@@ -99,7 +99,7 @@ react-canvas-game/
 
 ## 🗄️ Screenshot
 
-![Game Screenshot](https://i.imgur.com/DtJDlYQ.png)  
+![Game Screenshot](https://imgur.com/Wsnta4S.png)  
 _A simple gameplay experience!_
 
 ---
