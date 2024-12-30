@@ -1,23 +1,23 @@
 # React Canvas Game 🎮
 
-A simple 2D game created with React and HTML5 Canvas. The player, represented by a **yellow circle**, moves horizontally and vertically to avoid or collide with **black boxes**. Black boxes move toward the player, and when a collision occurs, the box is destroyed.
+A simple 2D game created with React and HTML5 Canvas. The player, represented by a **small baby sprite**, moves horizontally to collide with **gold coins**. Golden coins move toward the player, and when a collision occurs, the coin is destroyed, 2 is added to score.
 
 ---
 
 ## 🔠 Features
 
 - **Player Movement:** Use the keyboard to move the yellow circle horizontally across the canvas.
-- **Obstacle Generation:** green slimes appear dynamically and move toward the player.
-- **Collision Detection:** Destroy green slimes when they collide with the player.
-- **Gameplay Limit:** 5 seconds delay between slime spawn.
+- **Points Generation:** gold coins appear dynamically and move toward the player.
+- **Collision Detection:** Destroy coin when they collide with the player.
+- **Gameplay Limit:** 5 seconds delay between coin spawn.
+- **Infinite Generation:** Path and map are infinitely generated.
 
 ---
 
 ## 📚 How to Play
 
-1. Use the **arrow keys** keys to move the yellow circle.
-2. Avoid or collide with the black boxes as they approach.
-3. Destroy black boxes by making contact with them.
+1. Use the **arrow keys** keys to move the running baby.
+2. Destroy coins by making contact with them.
 
 ---
 
@@ -99,7 +99,7 @@ react-canvas-game/
 
 ## 🗄️ Screenshot
 
-![Game Screenshot](https://imgur.com/P1dSYNW.png)  
+![Game Screenshot](https://imgur.com/QrCAWPf.png)  
 _A simple gameplay experience!_
 
 ---
