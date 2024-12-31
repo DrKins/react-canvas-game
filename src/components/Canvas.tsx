@@ -28,7 +28,6 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
 
     const fieldAssetsWidth = 156;
     const fieldAssetsHeight = 256;
-    const fieldAssetsSpeed = 4;
     const fieldAssetsSpawnInterval = 400; // Spawn a new tree every 1 second
     let lastFieldAssetsSpawnTime = 0;
     const trees: { x: number; y: number; sx: number }[] = [];
@@ -52,7 +51,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     const fieldSpriteWidth = 32; // Width of a single player sprite
     const fieldSpriteHeight = 32; // Height of a single player sprite
     const fieldTotalCols = 8;
-
+    const fieldGrassTiles = [0, 0, 0, 20, 30, 0, 0, 0];
     const tilesPerRow = viewportWidth / fieldSpriteWidth; // 25 tiles
     const tilesPerCol = viewportHeight / fieldSpriteWidth; // Example 18.75 (~19 tiles)
     const centerTilePerRow = Math.floor(tilesPerRow / 2);
@@ -121,11 +120,13 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
       );
     };
 
-    const getRandomSx = (variant: "tree" | "path-left") => {
+    const getRandomSx = (variant: "tree" | "path" | "grass") => {
       let options: number[] = [];
       if (variant === "tree") options = [0, 180, 360];
 
-      if (variant === "path-left") options = [5, 13, 21, 29, 37, 45, 53, 61];
+      if (variant === "path") options = [32, 64];
+
+      if (variant === "grass") options = fieldGrassTiles;
 
       return options[Math.floor(Math.random() * options.length)];
     };
@@ -133,8 +134,8 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     const tilemap = Array.from({ length: tilesPerCol }, () =>
       Array.from({ length: tilesPerRow }, (_, i) =>
         i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2
-          ? getRandomSx("path-left")
-          : 37,
+          ? getRandomSx("path")
+          : getRandomSx("grass"),
       ),
     );
 
@@ -153,7 +154,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
       lastTimestamp = timestamp;
 
       // Control the speed (adjust this value to slow it down)
-      const speed = 100; // pixels per second
+      const speed = 90; // pixels per second
       const distanceToMove = (deltaTime / 1000) * speed;
 
       // Accumulate the distance
@@ -194,8 +195,8 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
         // Prepend a new row at the top
         const newRow = Array.from({ length: tilesPerRow }, (_, i) =>
           i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2
-            ? getRandomSx("path-left")
-            : 37,
+            ? getRandomSx("path")
+            : getRandomSx("grass"),
         );
         tilemap.unshift(newRow);
 
@@ -245,7 +246,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
 
       // Update and draw trees
       trees.forEach((tree, index) => {
-        tree.y += fieldAssetsSpeed; // Move tree downward
+        tree.y += 1.5; // Move tree downward
 
         // Only draw trees that fall within the restricted range
         if (tree.x < minXTree || tree.x > maxXTree) {

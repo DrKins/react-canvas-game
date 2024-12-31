@@ -99,7 +99,7 @@ react-canvas-game/
 
 ## 🗄️ Screenshot
 
-![Game Screenshot](https://imgur.com/QrCAWPf.png)  
+![Game Screenshot](https://imgur.com/fjhqFRj.png)  
 _A simple gameplay experience!_
 
 ---
