@@ -65,6 +65,34 @@
   font-weight: 600;
 }
 
+.start-page {
+  display: flex;
+  background-color: #654a05;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 4rem;
+  height: 100vh;
+  background-image: url("/bg1.jpeg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center left;
+}
+
+.end-page {
+  display: flex;
+  background-color: #654a05;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 4rem;
+  height: 100vh;
+  background-image: url("/fail.jpeg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center left;
+}
+
 .end-game-text {
   display: flex;
   flex-direction: column;
@@ -85,7 +113,7 @@
 .end-game-text__score {
   font-size: 1em;
   font-weight: 600;
-  color: initial;
+  color: white;
 }
 
 .end-game-text__button {

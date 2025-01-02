@@ -1,25 +1,32 @@
 import React, { useEffect, useRef } from "react";
-import { generateSpriteSheetInformations } from "../utils/generateSpriteSheetInformations";
-import { intersectsRect } from "../utils/intersects";
+import {
+  generateSpriteSheetInformations,
+  intersectsRect,
+  randomIntFromInterval,
+} from "../utils";
 
 interface CanvasProps {
-  score: number;
   setScore: (score: number) => void;
+  endGame: () => void;
 }
-const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
+const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const getRandomSx = (variant: "tree" | "path" | "grass" | "logs") => {
+    const getRandomArrayValue = (
+      variant: "tree" | "path" | "grass" | "logs" | "boxes",
+    ) => {
       let options: number[] = [];
-      if (variant === "tree") options = [0, 180, 360];
+      if (variant === "tree") options = [0, 128 + 12];
 
       if (variant === "path") options = [32, 64];
 
       if (variant === "logs") options = [0, 128];
+
+      if (variant === "boxes") options = [0];
 
       if (variant === "grass") options = fieldGrassTiles;
 
@@ -61,14 +68,34 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     let accumulatedDistance = 0;
 
     const {
+      spritesheet: pathObsticleSpriteSheet,
+      spriteWidth: pathObsticleWidth,
+      spriteHeight: pathObsticleHeight,
+    } = generateSpriteSheetInformations({
+      url: "/src/assets/props.png",
+      spriteWidth: 32,
+      spriteHeight: 32,
+      totalCols: 8,
+    });
+
+    const obstacles: {
+      x: number;
+      y: number;
+      sy: number;
+      sw?: number;
+      sh?: number;
+    }[] = [];
+
+    const {
       spritesheet: fieldAssetsSpriteSheet,
       spriteWidth: fieldAssetsWidth,
       spriteHeight: fieldAssetsHeight,
       spawnInterval: fieldAssetsSpawnInterval,
     } = generateSpriteSheetInformations({
       url: "/src/assets/assets.png",
-      spriteWidth: 156,
-      spriteHeight: 256,
+      spriteWidth: 128 + 12,
+      spriteHeight: 160,
+      spawnInterval: 50,
     });
 
     // helpers and background assets
@@ -82,15 +109,15 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
       sh?: number;
     }[] = [
       {
-        x: Math.random() * (window.innerWidth - maxXTree) + maxXTree / 2,
+        x: Math.random() * (window.innerWidth - maxXTree) - maxXTree / 2,
         y: canvas.height - fieldAssetsHeight * 3,
-        sx: getRandomSx("tree"),
+        sx: getRandomArrayValue("tree"),
         sy: 0,
       },
       {
         x: Math.random() * minXTree,
         y: canvas.height - fieldAssetsHeight * 4,
-        sx: getRandomSx("tree"),
+        sx: getRandomArrayValue("tree"),
         sy: 0,
       },
     ];
@@ -99,15 +126,11 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     const spawnTree = () => {
       let randomX =
         assets.length % 2 === 0
-          ? Math.random() * (window.innerWidth - maxXTree) + maxXTree
+          ? randomIntFromInterval(maxXTree, canvas.width - fieldAssetsWidth / 2)
           : Math.random() * minXTree; // Spawn left of minX
-      let randomY =
-        assets.length === 0
-          ? 0
-          : assets[assets.length - 1].y - fieldAssetsHeight;
-      const randomSx = getRandomSx("tree"); // Get a random `sx` value
+      let randomY = -fieldAssetsHeight;
+      const randomSx = getRandomArrayValue("tree"); // Get a random `sx` value
       let safeToSpawn = true;
-      // let attemptCount = 0;
 
       while (!safeToSpawn) {
         randomX = Math.random() * minXTree;
@@ -135,27 +158,15 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
             break;
           }
         }
-        // attemptCount++;
       }
 
-      if (safeToSpawn) {
-        assets.push({
+      safeToSpawn &&
+        assets.unshift({
           x: randomX,
           y: randomY,
           sx: randomSx,
           sy: 0,
         });
-      }
-      // else {
-      //   assets.push({
-      //     x: newRandomX,
-      //     y: -fieldAssetsHeight,
-      //     sx: getRandomSx("logs"),
-      //     sy: 320,
-      //     sw: 110,
-      //     sh: 156,
-      //   });
-      // }
     };
 
     // Player sprite sheet
@@ -172,7 +183,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
       spriteHeight: 32,
       totalCols: 1,
       totalRows: 24,
-      scale: 1.25,
+      scale: 1,
       spawnInterval: 100,
     });
 
@@ -182,37 +193,32 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     let lastPlayerFrameTime = 0;
     let playerSpeed = 32; // Speed of the player
 
-    // Enemy sprite sheet
+    // coin sprite sheet
     const {
-      spritesheet: enemySpriteSheet,
-      spriteWidth: enemySpriteWidth,
-      spriteHeight: enemySpriteHeight,
-      scale: enemyScale,
-      totalFrames: enemyTotalFrames,
+      spritesheet: coinSpriteSheet,
+      spriteWidth: coinSpriteWidth,
+      spriteHeight: coinSpriteHeight,
+      scale: coinScale,
+      totalFrames: coinTotalFrames,
     } = generateSpriteSheetInformations({
-      url: "/src/assets/enemy.png",
+      url: "/src/assets/coin.png",
       spriteWidth: 16,
       spriteHeight: 16,
       scale: 1.25,
       totalCols: 1,
       totalRows: 8,
     });
-    let enemyCurrentFrame = 0; // Current frame of the enemy animation
-    const enemyPositions = [
+    let coinCurrentFrame = 0; // Current frame of the coin animation
+    const coinPosition = [
       {
-        x: 32 * (centerTilePerRow - 2),
-        y: enemySpriteHeight,
-        animationSpeed: 100,
-      },
-      {
-        x: 32 * (centerTilePerRow + 1),
-        y: enemySpriteHeight,
+        x: 32 * (centerTilePerRow - 1),
+        y: coinSpriteHeight,
         animationSpeed: 100,
       },
     ];
-    let lastEnemyFrameTime = 0;
-    let lastEnemyAddTime = 0;
-    const enemySpeed = 2; // Speed of enemies
+    let lastCoinFrameTime = 0;
+    let lastcoinAddTime = 0;
+    const coinSpeed = 1.64; // Speed of enemies
 
     // Draw a sprite
     const drawSprite = (
@@ -241,8 +247,12 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     const tilemap = Array.from({ length: tilesPerCol }, () =>
       Array.from({ length: tilesPerRow }, (_, i) =>
         i >= centerTilePerRow - 2 && i <= centerTilePerRow + 2
-          ? 32
-          : getRandomSx("grass"),
+          ? i >= centerTilePerRow - 1 && i <= centerTilePerRow + 1
+            ? 32
+            : Array.from({ length: 31 }, (_, i) => i + 32)[
+                Math.floor(Math.random() * 31)
+              ]
+          : getRandomArrayValue("grass"),
       ),
     );
 
@@ -302,7 +312,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
               : Array.from({ length: 31 }, (_, i) => i + 32)[
                   Math.floor(Math.random() * 31)
                 ]
-            : getRandomSx("grass"),
+            : getRandomArrayValue("grass"),
         );
         tilemap.unshift(newRow);
 
@@ -310,44 +320,90 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
         accumulatedDistance -= fieldSpriteHeight;
       }
 
-      // Draw enemies
-      enemyPositions.forEach((enemy) => {
-        if (timestamp - lastEnemyFrameTime > enemy.animationSpeed) {
-          enemyCurrentFrame = (enemyCurrentFrame + 1) % enemyTotalFrames;
-          lastEnemyFrameTime = timestamp;
+      // Draw coins
+      coinPosition.forEach((coin) => {
+        if (timestamp - lastCoinFrameTime > coin.animationSpeed) {
+          coinCurrentFrame = (coinCurrentFrame + 1) % coinTotalFrames;
+          lastCoinFrameTime = timestamp;
         }
 
-        enemy.y += enemySpeed; // Move enemy downward
-        if (enemy.y > canvas.height) {
-          const index = enemyPositions.indexOf(enemy);
+        coin.y += coinSpeed; // Move coin downward
+        if (coin.y > canvas.height) {
+          const index = coinPosition.indexOf(coin);
           if (index > -1) {
-            enemyPositions.splice(index, 1); // Remove enemy from array
+            coinPosition.splice(index, 1); // Remove coin from array
           }
         }
         drawSprite(
-          enemySpriteSheet,
-          enemyCurrentFrame,
-          enemySpriteWidth,
-          enemySpriteHeight,
-          enemy.x,
-          enemy.y,
-          enemyScale,
+          coinSpriteSheet,
+          coinCurrentFrame,
+          coinSpriteWidth,
+          coinSpriteHeight,
+          coin.x,
+          coin.y,
+          coinScale,
         );
       });
 
-      // Add a new coin every half a second
-      if (timestamp - lastEnemyAddTime > 500 && enemyPositions.length < 10) {
-        enemyPositions.push({
+      obstacles.forEach((obstacle) => {
+        obstacle.y += coinSpeed; // Move coin downward
+        if (obstacle.y > canvas.height + 128) {
+          const index = obstacles.indexOf(obstacle);
+          if (index > -1) {
+            obstacles.splice(index, 1); // Remove coin from array
+          }
+        }
+
+        ctx.drawImage(
+          pathObsticleSpriteSheet,
+          128 + 32,
+          32 - 12,
+          pathObsticleWidth,
+          pathObsticleHeight + 12,
+          obstacle.x,
+          obstacle.y,
+          pathObsticleWidth,
+          pathObsticleHeight + 12,
+        );
+      });
+
+      // Add a new coin and new obstacles every 2 seconds
+      if (timestamp - lastcoinAddTime > 2000 && coinPosition.length < 10) {
+        coinPosition.push({
           x: [
-            (centerTilePerRow - 2.5) * 34,
-            (centerTilePerRow - 1.5) * 34,
-            centerTilePerRow * 32,
-            (centerTilePerRow + 0.5) * 34,
+            (centerTilePerRow - 1) * 32,
+            (centerTilePerRow + 0.25) * 32,
+            (centerTilePerRow + 1.5) * 32,
           ][Math.floor(Math.random() * 4)],
-          y: -enemySpriteHeight * 1.5,
+          y: -coinSpriteHeight * 1.5,
           animationSpeed: 100, // Update animation frame every 100ms
         });
-        lastEnemyAddTime = timestamp;
+
+        const Xoptions = [
+          (centerTilePerRow - 1) * 32,
+          centerTilePerRow * 32,
+          (centerTilePerRow + 1) * 32,
+        ];
+
+        const currentObstacleX: number[] = [];
+
+        for (let i = 0; i < 2; i++) {
+          let isValidObstacle = false;
+          while (!isValidObstacle) {
+            let xOption = Xoptions[Math.floor(Math.random() * Xoptions.length)];
+            if (!currentObstacleX.includes(xOption)) {
+              currentObstacleX.push(xOption);
+              isValidObstacle = true;
+            }
+          }
+
+          obstacles.push({
+            x: currentObstacleX[i],
+            y: -coinSpriteHeight * 1.5 - 100,
+            sy: getRandomArrayValue("boxes"),
+          });
+        }
+        lastcoinAddTime = timestamp;
       }
 
       // Update and draw assets
@@ -388,7 +444,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
 
       // Reset player position if offscreen
       if (playerY < -playerSpriteHeight) {
-        playerY = canvas.height;
+        endGame();
       }
       if (timestamp - lastPlayerFrameTime > playerFrameDelay) {
         playerCurrentFrame = Math.max(
@@ -409,8 +465,8 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
         playerScale,
       );
 
-      // Check for collision between enemy and player
-      enemyPositions.forEach((enemy) => {
+      // Check for collision between coin and player
+      coinPosition.forEach((coin) => {
         const isColliding = intersectsRect({
           rect1: {
             x: playerX,
@@ -419,23 +475,47 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
             height: playerSpriteHeight * playerScale,
           },
           rect2: {
-            x: enemy.x,
-            y: enemy.y,
-            width: enemySpriteWidth * enemyScale,
-            height: enemySpriteHeight * enemyScale,
+            x: coin.x,
+            y: coin.y,
+            width: coinSpriteWidth * coinScale,
+            height: coinSpriteHeight * coinScale,
+          },
+        });
+
+        if (isColliding) {
+          setScore(1);
+
+          // Game over
+          const index = coinPosition.findIndex(
+            (e) => e.x === coin.x && e.y === coin.y,
+          );
+          if (index > -1) {
+            console.log("score");
+            coinPosition.splice(index, 1);
+          }
+        }
+      });
+
+      // Check for collision between obstacle and player
+      obstacles.forEach((obstacle) => {
+        const isColliding = intersectsRect({
+          rect1: {
+            x: playerX + (playerSpriteWidth - playerSpriteWidth / 2) / 2,
+            y: playerY,
+            width: playerSpriteWidth / 2,
+            height: playerSpriteHeight * playerScale,
+          },
+          rect2: {
+            x: obstacle.x,
+            y: obstacle.y,
+            width: pathObsticleWidth,
+            height: pathObsticleWidth,
           },
         });
 
         if (isColliding) {
           // Game over
-          console.log("Colliding, Game Over!");
-          const index = enemyPositions.findIndex(
-            (e) => e.x === enemy.x && e.y === enemy.y,
-          );
-          if (index > -1) {
-            enemyPositions.splice(index, 1);
-            setScore(score + 1);
-          }
+          playerY += 2;
         }
       });
 
@@ -447,7 +527,7 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       switch (event.key) {
         case "ArrowLeft":
-          if (playerX > (centerTilePerRow - 2) * 32) {
+          if (playerX > (centerTilePerRow - 1) * 32) {
             playerX -= playerSpeed;
           }
           break;
@@ -463,9 +543,10 @@ const Canvas: React.FC<CanvasProps> = ({ score, setScore }) => {
     // Start animation after both sprite sheets are loaded
     Promise.all([
       new Promise((resolve) => (playerSpriteSheet.onload = resolve)),
-      new Promise((resolve) => (enemySpriteSheet.onload = resolve)),
+      new Promise((resolve) => (coinSpriteSheet.onload = resolve)),
       new Promise((resolve) => (fieldAssetsSpriteSheet.onload = resolve)),
       new Promise((resolve) => (fieldSpriteSheet.onload = resolve)),
+      new Promise((resolve) => (pathObsticleSpriteSheet.onload = resolve)),
     ]).then(() => {
       requestAnimationFrame(animate);
     });
