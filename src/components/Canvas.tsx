@@ -4,9 +4,10 @@ import {
   intersectsRect,
   randomIntFromInterval,
 } from "../utils";
+import { createInstance } from "../utils/createInstance";
 
 interface CanvasProps {
-  setScore: (score: number) => void;
+  setScore: () => void;
   endGame: () => void;
 }
 const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
@@ -17,7 +18,10 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
     public y: number;
     public id: number;
 
-    constructor(x: number = 0, y: number = 0) {
+    constructor(
+      x: number = 32 * (window.innerWidth / 33 / 2) + 8,
+      y: number = window.innerHeight - 128,
+    ) {
       this.x = x;
       this.y = y;
       this.id = Date.now();
@@ -32,12 +36,33 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
     }
   }
 
-  let newPlayerInstance: Player | null = null;
-  const newPlayer = ((): Player => {
-    if (newPlayerInstance) return newPlayerInstance;
-    newPlayerInstance = new Player(800 / 2, screen.height / 2);
-    return newPlayerInstance;
-  })();
+  class Coins {
+    public list: { x: number; y: number; animationSpeed: number }[];
+    public id: number;
+    constructor() {
+      this.list = [];
+      this.id = Date.now();
+    }
+
+    public addCoin({
+      x,
+      y,
+      animationSpeed,
+    }: {
+      x: number;
+      y: number;
+      animationSpeed: number;
+    }) {
+      this.list.push({ x, y, animationSpeed });
+    }
+
+    public removeCoin({ x, y }: { x: number; y: number }) {
+      this.list = this.list.filter((coin) => !(coin.x === x && coin.y === y));
+    }
+  }
+
+  const newPlayer = createInstance(Player)();
+  const newCoins = createInstance(Coins)();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -234,7 +259,6 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
       totalRows: 8,
     });
     let coinCurrentFrame = 0; // Current frame of the coin animation
-    const coinPosition: { x: number; y: number; animationSpeed: number }[] = [];
     let lastCoinFrameTime = 0;
     let lastcoinAddTime = 0;
     const coinSpeed = 1.64; // Speed of enemies
@@ -340,7 +364,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
       }
 
       // Draw coins
-      coinPosition.forEach((coin) => {
+      newCoins.list.forEach((coin) => {
         if (timestamp - lastCoinFrameTime > coin.animationSpeed) {
           coinCurrentFrame = (coinCurrentFrame + 1) % coinTotalFrames;
           lastCoinFrameTime = timestamp;
@@ -348,9 +372,9 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
 
         coin.y += coinSpeed; // Move coin downward
         if (coin.y > canvas.height) {
-          const index = coinPosition.indexOf(coin);
+          const index = newCoins.list.indexOf(coin);
           if (index > -1) {
-            coinPosition.splice(index, 1); // Remove coin from array
+            newCoins.removeCoin(newCoins.list[index]); // Remove coin from array
           }
         }
         drawSprite(
@@ -386,10 +410,10 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
         );
       });
 
-      console.log("player:", newPlayer.y, newPlayer.id);
+      // console.table(newCoins.list.length);
 
       // Add a new coin and new obstacles every 2 seconds
-      if (timestamp - lastcoinAddTime > 800 && coinPosition.length < 10) {
+      if (timestamp - lastcoinAddTime > 800 && newCoins.list.length < 10) {
         const newCoin = {
           x:
             // Make sure the new coin is not colliding with obstacles
@@ -423,7 +447,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
           animationSpeed: 100, // Update animation frame every 100ms
         };
 
-        coinPosition.push(newCoin);
+        //newCoins.addCoin(newCoin);
 
         const Xoptions = [
           (centerTilePerRow - 1) * 32,
@@ -484,17 +508,12 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
       }
 
       // Update player position
-      if (newPlayer.y > canvas.height - playerSpriteHeight * 8) {
+      if (newPlayer.y > canvas.height - playerSpriteHeight * 6) {
         newPlayer.updateY(newPlayer.y - 0.5);
       }
 
       // Reset player position if offscreen
-      if (
-        newPlayer.x < -playerSpriteWidth ||
-        newPlayer.x > canvas.width ||
-        newPlayer.y < -playerSpriteHeight ||
-        newPlayer.y > canvas.height
-      ) {
+      if (newPlayer.y < -playerSpriteHeight || newPlayer.y > canvas.height) {
         endGame();
       }
       if (timestamp - lastPlayerFrameTime > playerFrameDelay) {
@@ -506,6 +525,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
       }
 
       // Draw player
+      console.log("drawPlyer y:", newPlayer.y);
       drawSprite(
         playerSpriteSheet,
         playerCurrentFrame,
@@ -517,7 +537,7 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
       );
 
       // Check for collision between coin and player
-      coinPosition.forEach((coin) => {
+      newCoins.list.forEach((coin) => {
         const isColliding = intersectsRect({
           rect1: {
             x: newPlayer.x,
@@ -534,14 +554,27 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
         });
 
         if (isColliding) {
-          setScore(1);
-
-          // Game over
-          const index = coinPosition.findIndex(
-            (e) => e.x === coin.x && e.y === coin.y,
+          const collidingCoin = newCoins.list.find((c) =>
+            intersectsRect({
+              rect1: {
+                x: newPlayer.x,
+                y: newPlayer.y,
+                width: playerSpriteWidth * playerScale,
+                height: playerSpriteHeight * playerScale,
+              },
+              rect2: {
+                x: c.x,
+                y: c.y,
+                width: coinSpriteWidth * coinScale,
+                height: coinSpriteHeight * coinScale,
+              },
+            }),
           );
-          if (index > -1) {
-            coinPosition.splice(index, 1);
+          if (collidingCoin) {
+            // console.log("Collision detected");
+            setScore();
+            newCoins.removeCoin(collidingCoin);
+            return;
           }
         }
       });
@@ -563,15 +596,13 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
           },
         });
 
-        // Game over
         if (isColliding) {
-          newPlayer.updateY(newPlayer.y);
-        } else {
-          if (newPlayer.y > canvas.height / 2) {
-            newPlayer.updateY(newPlayer.y - 0.5);
-          } else {
-            newPlayer.updateY(canvas.height / 2);
-          }
+          console.log("is colliding colliding");
+          newPlayer.updateY(newPlayer.y + 1.25);
+        }
+
+        if (!isColliding) {
+          console.log("is not colliding");
         }
       });
 
@@ -583,13 +614,13 @@ const Canvas: React.FC<CanvasProps> = ({ setScore, endGame }) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       switch (event.key) {
         case "ArrowLeft":
-          if (newPlayer.x > (centerTilePerRow - 1) * 32) {
-            newPlayer.updateX(newPlayer.x - playerSpeed);
+          if (newPlayer.x > (centerTilePerRow - 1) * playerSpeed) {
+            newPlayer.updateX(newPlayer.x - 16);
           }
           break;
         case "ArrowRight":
-          if (newPlayer.x < (centerTilePerRow + 1) * 32) {
-            newPlayer.updateX(newPlayer.x + playerSpeed);
+          if (newPlayer.x < (centerTilePerRow + 1) * playerSpeed) {
+            newPlayer.updateX(newPlayer.x + 16);
           }
           break;
       }
