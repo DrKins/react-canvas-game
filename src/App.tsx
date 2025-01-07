@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./App.css";
-import Canvas from "./components/Canvas";
+import { Game } from "./components/Game";
 
 type GameState = "idle" | "playing" | "end";
 function App() {
@@ -36,23 +36,23 @@ function App() {
     );
   }
 
-  if (gameState === "playing")
-    return (
-      <div>
-        {
-          <section className="header-info">
-            <h1 className="title">React game</h1>
-            <div className="score">Score: {score}</div>
-          </section>
-        }
-        <Canvas
-          setScore={() => {
-            setScore((prev) => prev + 1);
-          }}
-          endGame={() => setGameState("end")}
-        />
-      </div>
-    );
+  if (gameState === "playing") return <Game />;
+  // return (
+  //   <div>
+  //     {
+  //       <section className="header-info">
+  //         <h1 className="title">React game</h1>
+  //         <div className="score">Score: {score}</div>
+  //       </section>
+  //     }
+  //     <Canvas
+  //       setScore={() => {
+  //         setScore((prev) => prev + 1);
+  //       }}
+  //       endGame={() => setGameState("end")}
+  //     />
+  //   </div>
+  // );
 }
 
 export default App;
