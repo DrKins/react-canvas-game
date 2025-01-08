@@ -60,17 +60,21 @@ export class SpriteSheet {
     ctx,
     x,
     y,
+    spriteX,
+    spriteY,
   }: {
     ctx: CanvasRenderingContext2D;
     x: number;
     y: number;
+    spriteX?: number;
+    spriteY?: number;
   }) {
     await this.loadPromise;
     // draw the sprite
     ctx.drawImage(
       this.spritesheet,
-      this.currentFrame * this.spriteWidth,
-      0,
+      spriteX ?? this.currentFrame * this.spriteWidth,
+      spriteY ?? 0,
       this.spriteWidth,
       this.spriteHeight,
       x,
