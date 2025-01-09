@@ -18,23 +18,21 @@ export const Game: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const canvasGlobalInformations = useRef<CanvasInformations>({
-    mapTotalCols: window.innerWidth / 64,
-    mapTotalRows: window.innerHeight / 64,
-    centerTilePerRow: window.innerWidth / 64 / 2,
-    centerTilePerCol: window.innerHeight / 64 / 2,
+    mapTotalRows: Math.ceil(window.innerWidth / 64),
+    mapTotalCols: Math.ceil(window.innerHeight / 64),
+    centerTilePerRow: Math.ceil(window.innerWidth / 64 / 2),
+    centerTilePerCol: Math.ceil(window.innerHeight / 64 / 2),
   });
+
   const backgroundRef = useRef<number[][] | null>(
     Array.from({ length: canvasGlobalInformations.current.mapTotalCols }, () =>
       Array.from(
         { length: canvasGlobalInformations.current.mapTotalRows },
         (_, i) =>
-          i >= canvasGlobalInformations.current.centerTilePerRow - 2 &&
-          i <= canvasGlobalInformations.current.centerTilePerRow + 2
-            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 &&
-              i <= canvasGlobalInformations.current.centerTilePerRow + 1
-              ? 0
-              : 1
-            : 0,
+          i >= canvasGlobalInformations.current.centerTilePerRow - 1 &&
+          i <= canvasGlobalInformations.current.centerTilePerRow + 1
+            ? 2
+            : 1,
       ),
     ),
   );
@@ -44,6 +42,7 @@ export const Game: React.FC = () => {
     id: Date.now(),
   });
   let animationId: number | null = null;
+
   // Background sprite sheet
   const backgroundSpriteSheetInstance = new SpriteSheet({
     url: "/src/assets/field.png",
@@ -52,7 +51,7 @@ export const Game: React.FC = () => {
     totalCols: 8,
     totalRows: 8,
     scale: 1,
-    spawnInterval: 100,
+    spawnInterval: 0,
     currentFrame: 0,
     lastFrame: 64,
     lastFrameTime: 0,
@@ -66,7 +65,7 @@ export const Game: React.FC = () => {
     spriteHeight: 32,
     totalCols: 1,
     totalRows: 24,
-    scale: 1,
+    scale: 2,
     spawnInterval: 100,
     currentFrame: 18,
     lastFrame: 24,
@@ -74,7 +73,9 @@ export const Game: React.FC = () => {
     movementSpeed: 32,
   });
 
-  const updateBackground = (timestamp: number) => {};
+  const updateBackground = (timestamp: number) => {
+    //TODO: add custom path generation
+  };
 
   const updatePlayer = (timestamp: number) => {
     if (
@@ -90,19 +91,14 @@ export const Game: React.FC = () => {
 
   const drawBackground = (ctx: CanvasRenderingContext2D) => {
     const backgroundArray = backgroundRef.current as number[][];
-    console.log(backgroundArray);
-    for (let row = 0; row < backgroundArray.length; row++) {
-      for (let col = 0; col < backgroundArray[row].length; col++) {
-        const tileIndex = backgroundArray[row][col];
-        const spriteX =
-          (tileIndex / canvasGlobalInformations.current.mapTotalCols) *
-          backgroundSpriteSheetInstance.spriteWidth;
-        const spriteY =
-          Math.floor(
-            tileIndex % canvasGlobalInformations.current.mapTotalRows,
-          ) * backgroundSpriteSheetInstance.spriteHeight;
-        const x = col * backgroundSpriteSheetInstance.spriteWidth;
-        const y = row * backgroundSpriteSheetInstance.spriteHeight;
+    for (let col = 0; col < backgroundArray.length; col++) {
+      for (let row = 0; row < backgroundArray[col].length; row++) {
+        const tileIndex = backgroundArray[col][row];
+        const x = row * backgroundSpriteSheetInstance.spriteWidth;
+        const y = col * backgroundSpriteSheetInstance.spriteHeight;
+
+        const spriteX = tileIndex > 0 && tileIndex < 2 ? 64 : 0;
+        const spriteY = tileIndex > 1 ? 128 : 0;
 
         backgroundSpriteSheetInstance.draw({
           ctx,

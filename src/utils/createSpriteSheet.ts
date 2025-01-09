@@ -7,6 +7,8 @@ export class SpriteSheet {
   currentFrame: number;
   lastFrameTime: number;
   movementSpeed: number;
+  totalCols: number;
+  totalRows: number;
   private loadPromise: Promise<void>;
   private initialFrame: number;
   private lastFrame: number;
@@ -41,6 +43,8 @@ export class SpriteSheet {
     this.movementSpeed = parameters.movementSpeed ?? 1;
     this.initialFrame = parameters.currentFrame ?? 0;
     this.lastFrame = parameters.lastFrame ?? 0;
+    this.totalCols = parameters.totalCols ?? 0;
+    this.totalRows = parameters.totalRows ?? 0;
   }
 
   public updateCurrentFrame(currentTime: number) {
