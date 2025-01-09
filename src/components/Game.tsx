@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
+import { intersectsRect, randomIntFromInterval } from "../utils";
 import { SpriteSheet } from "../utils/createSpriteSheet";
 
-interface PlayerStats {
+interface ObjectStats {
   x: number;
   y: number;
   id: number;
@@ -12,6 +13,7 @@ interface CanvasInformations {
   mapTotalRows: number;
   centerTilePerRow: number;
   centerTilePerCol: number;
+  score: number;
 }
 
 export const Game: React.FC = () => {
@@ -22,6 +24,7 @@ export const Game: React.FC = () => {
     mapTotalCols: Math.ceil(window.innerHeight / 64),
     centerTilePerRow: Math.ceil(window.innerWidth / 64 / 2),
     centerTilePerCol: Math.ceil(window.innerHeight / 64 / 2),
+    score: 0,
   });
 
   const backgroundRef = useRef<number[][] | null>(
@@ -36,11 +39,14 @@ export const Game: React.FC = () => {
       ),
     ),
   );
-  const playerRef = useRef<PlayerStats>({
+  const playerRef = useRef<ObjectStats>({
     x: window.innerWidth / 2,
     y: window.innerHeight,
     id: Date.now(),
   });
+
+  const coinRef = useRef<ObjectStats[]>([]);
+
   let animationId: number | null = null;
 
   // Background sprite sheet
@@ -72,6 +78,60 @@ export const Game: React.FC = () => {
     lastFrameTime: 0,
     movementSpeed: 32,
   });
+
+  // Coin sprite sheet
+  const coinSpriteSheetInstance = new SpriteSheet({
+    url: "/src/assets/coin.png",
+    spriteWidth: 16,
+    spriteHeight: 16,
+    totalCols: 1,
+    totalRows: 8,
+    scale: 2,
+    spawnInterval: 100,
+    currentFrame: 0,
+    lastFrame: 8,
+    lastFrameTime: 0,
+    movementSpeed: 0,
+  });
+
+  const updateCoin = (timestamp: number) => {
+    coinRef.current.forEach((coin, index) => {
+      const isColliding = intersectsRect({
+        rect1: {
+          x: playerRef.current.x,
+          y: playerRef.current.y,
+          width:
+            playerSpriteSheetInstance.spriteWidth *
+            playerSpriteSheetInstance.scale,
+          height:
+            playerSpriteSheetInstance.spriteHeight *
+            playerSpriteSheetInstance.scale,
+        },
+        rect2: {
+          x: coin.x,
+          y: coin.y,
+          width:
+            coinSpriteSheetInstance.spriteWidth * coinSpriteSheetInstance.scale,
+          height:
+            coinSpriteSheetInstance.spriteHeight *
+            coinSpriteSheetInstance.scale,
+        },
+      });
+
+      if (
+        coin.y >
+          (canvasRef.current as HTMLCanvasElement).height -
+            coinSpriteSheetInstance.spriteHeight * 2 ||
+        isColliding
+      )
+        coinRef.current.splice(index, 1);
+
+      if (isColliding) canvasGlobalInformations.current.score += 1;
+
+      coin.y += 1; // Move the coin downwards
+      coinSpriteSheetInstance.updateCurrentFrame(timestamp);
+    });
+  };
 
   const updateBackground = (timestamp: number) => {
     //TODO: add custom path generation
@@ -111,6 +171,12 @@ export const Game: React.FC = () => {
     }
   };
 
+  const drawCoin = (ctx: CanvasRenderingContext2D) => {
+    coinRef.current.forEach((coin) =>
+      coinSpriteSheetInstance.draw({ ctx, x: coin.x, y: coin.y }),
+    );
+  };
+
   const drawPlayer = (ctx: CanvasRenderingContext2D) => {
     playerSpriteSheetInstance.draw({
       ctx,
@@ -121,16 +187,15 @@ export const Game: React.FC = () => {
 
   const update = (timestamp: number) => {
     updatePlayer(timestamp);
+    updateCoin(timestamp);
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {
     // Clear the canvas
     ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
 
-    // Draw background
     drawBackground(ctx);
-
-    // Draw the player
+    drawCoin(ctx);
     drawPlayer(ctx);
   };
 
@@ -140,6 +205,7 @@ export const Game: React.FC = () => {
 
     animationId = requestAnimationFrame((timestamp) => animate(timestamp, ctx));
   };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -150,7 +216,17 @@ export const Game: React.FC = () => {
 
     animationId = requestAnimationFrame((timestamp) => animate(timestamp, ctx));
 
-    return () => cancelAnimationFrame(animationId as number);
+    const coinInterval = setInterval(() => {
+      const x = 64 * canvasGlobalInformations.current.centerTilePerRow! + 1;
+      const y = randomIntFromInterval(0, canvasRef.current!.height - 32); // Start above the canvas
+
+      coinRef.current.push({ x, y, id: Date.now() });
+    }, 1000);
+
+    return () => {
+      cancelAnimationFrame(animationId as number);
+      clearInterval(coinInterval);
+    };
   }, []);
 
   return <canvas ref={canvasRef} />;
