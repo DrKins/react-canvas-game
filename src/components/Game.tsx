@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { intersectsRect, randomIntFromInterval } from "../utils";
+import { intersectsRect } from "../utils";
 import { SpriteSheet } from "../utils/createSpriteSheet";
 
 interface ObjectStats {
@@ -149,7 +149,7 @@ export const Game: React.FC = () => {
     playerSpriteSheetInstance.updateCurrentFrame(timestamp);
   };
 
-  const drawBackground = (ctx: CanvasRenderingContext2D) => {
+  const drawBackground = async (ctx: CanvasRenderingContext2D) => {
     const backgroundArray = backgroundRef.current as number[][];
     for (let col = 0; col < backgroundArray.length; col++) {
       for (let row = 0; row < backgroundArray[col].length; row++) {
@@ -160,7 +160,7 @@ export const Game: React.FC = () => {
         const spriteX = tileIndex > 0 && tileIndex < 2 ? 64 : 0;
         const spriteY = tileIndex > 1 ? 128 : 0;
 
-        backgroundSpriteSheetInstance.draw({
+        await backgroundSpriteSheetInstance.draw({
           ctx,
           x,
           y,
@@ -171,14 +171,21 @@ export const Game: React.FC = () => {
     }
   };
 
-  const drawCoin = (ctx: CanvasRenderingContext2D) => {
-    coinRef.current.forEach((coin) =>
-      coinSpriteSheetInstance.draw({ ctx, x: coin.x, y: coin.y }),
+  const drawScore = (ctx: CanvasRenderingContext2D) => {
+    ctx.font = "24px sans-serif";
+    ctx.fillStyle = "white";
+    ctx.fillText(`Score: ${canvasGlobalInformations.current.score}`, 16, 32);
+  };
+
+  const drawCoin = async (ctx: CanvasRenderingContext2D) => {
+    coinRef.current.forEach(
+      async (coin) =>
+        await coinSpriteSheetInstance.draw({ ctx, x: coin.x, y: coin.y }),
     );
   };
 
-  const drawPlayer = (ctx: CanvasRenderingContext2D) => {
-    playerSpriteSheetInstance.draw({
+  const drawPlayer = async (ctx: CanvasRenderingContext2D) => {
+    await playerSpriteSheetInstance.draw({
       ctx,
       x: playerRef.current.x,
       y: playerRef.current.y,
@@ -190,13 +197,14 @@ export const Game: React.FC = () => {
     updateCoin(timestamp);
   };
 
-  const draw = (ctx: CanvasRenderingContext2D) => {
+  const draw = async (ctx: CanvasRenderingContext2D) => {
     // Clear the canvas
     ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
 
-    drawBackground(ctx);
-    drawCoin(ctx);
-    drawPlayer(ctx);
+    await drawBackground(ctx);
+    await drawCoin(ctx);
+    await drawPlayer(ctx);
+    drawScore(ctx);
   };
 
   const animate = (timestamp: number, ctx: CanvasRenderingContext2D) => {
@@ -217,11 +225,17 @@ export const Game: React.FC = () => {
     animationId = requestAnimationFrame((timestamp) => animate(timestamp, ctx));
 
     const coinInterval = setInterval(() => {
-      const x = 64 * canvasGlobalInformations.current.centerTilePerRow! + 1;
-      const y = randomIntFromInterval(0, playerRef.current.y - 64); // Spawn in front of player
+      const x =
+        Math.random() < 0.5
+          ? 64 * canvasGlobalInformations.current.centerTilePerRow! -
+            playerSpriteSheetInstance.spriteWidth
+          : 64 * canvasGlobalInformations.current.centerTilePerRow! +
+            2 * playerSpriteSheetInstance.spriteWidth;
+      const y = -coinSpriteSheetInstance.spriteHeight; // Spawn out of screen
 
-      coinRef.current.push({ x, y, id: Date.now() });
-    }, 1000);
+      if (coinRef.current.length < 10)
+        coinRef.current.push({ x, y, id: Date.now() });
+    }, 1500);
 
     return () => {
       cancelAnimationFrame(animationId as number);
