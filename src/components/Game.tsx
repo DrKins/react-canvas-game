@@ -218,7 +218,7 @@ export const Game: React.FC = () => {
 
     const coinInterval = setInterval(() => {
       const x = 64 * canvasGlobalInformations.current.centerTilePerRow! + 1;
-      const y = randomIntFromInterval(0, canvasRef.current!.height - 32); // Start above the canvas
+      const y = randomIntFromInterval(0, playerRef.current.y - 64); // Spawn in front of player
 
       coinRef.current.push({ x, y, id: Date.now() });
     }, 1000);
