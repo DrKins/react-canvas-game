@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { intersectsRect } from "../utils";
+import { intersectsRect, randomIntFromInterval } from "../utils";
 import { SpriteSheet } from "../utils/createSpriteSheet";
 
 interface ObjectStats {
@@ -14,6 +14,7 @@ interface CanvasInformations {
   centerTilePerRow: number;
   centerTilePerCol: number;
   score: number;
+  lastMapTimestamp: number;
 }
 
 interface generateCoinX {
@@ -62,6 +63,7 @@ export const Game: React.FC = () => {
     centerTilePerRow: Math.ceil(window.innerWidth / 32 / 2),
     centerTilePerCol: Math.ceil(window.innerHeight / 32 / 2),
     score: 0,
+    lastMapTimestamp: 0,
   });
 
   const backgroundRef = useRef<number[][] | null>(
@@ -69,9 +71,12 @@ export const Game: React.FC = () => {
       Array.from(
         { length: canvasGlobalInformations.current.mapTotalRows },
         (_, i) =>
-          i >= canvasGlobalInformations.current.centerTilePerRow - 1 &&
-          i <= canvasGlobalInformations.current.centerTilePerRow + 1
-            ? 128
+          i >= canvasGlobalInformations.current.centerTilePerRow - 2 && //this targets outer rows so it is edge of path
+          i <= canvasGlobalInformations.current.centerTilePerRow + 2
+            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
+              i <= canvasGlobalInformations.current.centerTilePerRow + 1
+              ? 128
+              : randomIntFromInterval(132, 135)
             : 96,
       ),
     ),
@@ -167,13 +172,28 @@ export const Game: React.FC = () => {
 
       if (isColliding) canvasGlobalInformations.current.score += 1;
 
-      coin.y += 1; // Move the coin downwards
+      coin.y += 4; // Move the coin downwards
       coinSpriteSheetInstance.updateCurrentFrame(timestamp);
     });
   };
 
-  const updateBackground = (timestamp: number) => {
-    //TODO: add custom path generation
+  const updateBackground = async (timestamp: number) => {
+    if (timestamp - canvasGlobalInformations.current.lastMapTimestamp > 95) {
+      canvasGlobalInformations.current.lastMapTimestamp = timestamp;
+      const newRow = Array.from(
+        { length: canvasGlobalInformations.current.mapTotalRows },
+        (_, i) =>
+          i >= canvasGlobalInformations.current.centerTilePerRow - 2 && //this targets outer rows so it is edge of path
+          i <= canvasGlobalInformations.current.centerTilePerRow + 2
+            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
+              i <= canvasGlobalInformations.current.centerTilePerRow + 1
+              ? 128
+              : randomIntFromInterval(132, 135)
+            : 96,
+      );
+      backgroundRef.current?.unshift(newRow);
+      backgroundRef.current?.pop();
+    }
   };
 
   const updatePlayer = (timestamp: number) => {
@@ -277,6 +297,7 @@ export const Game: React.FC = () => {
   const update = (timestamp: number) => {
     updatePlayer(timestamp);
     updateCoin(timestamp);
+    updateBackground(timestamp);
   };
 
   const draw = async (ctx: CanvasRenderingContext2D) => {
@@ -318,7 +339,7 @@ export const Game: React.FC = () => {
 
       if (coinRef.current.length < 10)
         coinRef.current.push({ x, y, id: Date.now() });
-    }, 1500);
+    }, 750);
 
     return () => {
       cancelAnimationFrame(animationId as number);
