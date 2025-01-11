@@ -16,14 +16,51 @@ interface CanvasInformations {
   score: number;
 }
 
+interface generateCoinX {
+  playerSpriteSheetInstance: SpriteSheet;
+  backgroundSpriteSheetInstance: SpriteSheet;
+  canvasGlobalInformations: React.MutableRefObject<CanvasInformations>;
+}
+
+function getSpriteCoordinates(
+  tileIndex: number,
+  spritesheetWidth: number,
+  spriteSize: number,
+) {
+  const spriteX = (tileIndex % spritesheetWidth) * spriteSize;
+  const spriteY = Math.floor(tileIndex / spritesheetWidth) * spriteSize;
+  return { spriteX, spriteY };
+}
+
+function generateCoinX({
+  playerSpriteSheetInstance,
+  backgroundSpriteSheetInstance,
+  canvasGlobalInformations,
+}: generateCoinX): number {
+  const playerOffset = 4;
+  return Math.random() < 0.33
+    ? backgroundSpriteSheetInstance.spriteWidth *
+        canvasGlobalInformations.current.centerTilePerRow! -
+        playerSpriteSheetInstance.spriteWidth +
+        playerOffset
+    : Math.random() < 0.66
+    ? backgroundSpriteSheetInstance.spriteWidth *
+        canvasGlobalInformations.current.centerTilePerRow! +
+      playerSpriteSheetInstance.spriteWidth +
+      playerOffset
+    : backgroundSpriteSheetInstance.spriteWidth *
+        canvasGlobalInformations.current.centerTilePerRow! +
+      playerOffset;
+}
+
 export const Game: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const canvasGlobalInformations = useRef<CanvasInformations>({
-    mapTotalRows: Math.ceil(window.innerWidth / 64),
-    mapTotalCols: Math.ceil(window.innerHeight / 64),
-    centerTilePerRow: Math.ceil(window.innerWidth / 64 / 2),
-    centerTilePerCol: Math.ceil(window.innerHeight / 64 / 2),
+    mapTotalRows: Math.ceil(window.innerWidth / 32),
+    mapTotalCols: Math.ceil(window.innerHeight / 32),
+    centerTilePerRow: Math.ceil(window.innerWidth / 32 / 2),
+    centerTilePerCol: Math.ceil(window.innerHeight / 32 / 2),
     score: 0,
   });
 
@@ -34,13 +71,15 @@ export const Game: React.FC = () => {
         (_, i) =>
           i >= canvasGlobalInformations.current.centerTilePerRow - 1 &&
           i <= canvasGlobalInformations.current.centerTilePerRow + 1
-            ? 2
-            : 1,
+            ? 128
+            : 96,
       ),
     ),
   );
-  const playerRef = useRef<ObjectStats>({
-    x: window.innerWidth / 2,
+  const playerRef = useRef<
+    ObjectStats | { x: number | null; y: number; id: number }
+  >({
+    x: null,
     y: window.innerHeight,
     id: Date.now(),
   });
@@ -52,14 +91,14 @@ export const Game: React.FC = () => {
   // Background sprite sheet
   const backgroundSpriteSheetInstance = new SpriteSheet({
     url: "/src/assets/field.png",
-    spriteWidth: 64,
-    spriteHeight: 64,
-    totalCols: 8,
-    totalRows: 8,
+    spriteWidth: 32,
+    spriteHeight: 32,
+    totalCols: 16,
+    totalRows: 16,
     scale: 1,
     spawnInterval: 0,
     currentFrame: 0,
-    lastFrame: 64,
+    lastFrame: 256,
     lastFrameTime: 0,
     movementSpeed: 0,
   });
@@ -71,7 +110,7 @@ export const Game: React.FC = () => {
     spriteHeight: 32,
     totalCols: 1,
     totalRows: 24,
-    scale: 2,
+    scale: 1.25,
     spawnInterval: 100,
     currentFrame: 18,
     lastFrame: 24,
@@ -86,7 +125,7 @@ export const Game: React.FC = () => {
     spriteHeight: 16,
     totalCols: 1,
     totalRows: 8,
-    scale: 2,
+    scale: 1.5,
     spawnInterval: 100,
     currentFrame: 0,
     lastFrame: 8,
@@ -98,7 +137,7 @@ export const Game: React.FC = () => {
     coinRef.current.forEach((coin, index) => {
       const isColliding = intersectsRect({
         rect1: {
-          x: playerRef.current.x,
+          x: playerRef.current.x as number,
           y: playerRef.current.y,
           width:
             playerSpriteSheetInstance.spriteWidth *
@@ -138,6 +177,13 @@ export const Game: React.FC = () => {
   };
 
   const updatePlayer = (timestamp: number) => {
+    const playerOffset = 4;
+    if (playerRef.current.x === null)
+      playerRef.current.x =
+        backgroundSpriteSheetInstance.spriteWidth *
+          canvasGlobalInformations.current.centerTilePerRow -
+        playerOffset;
+
     if (
       playerRef.current.y >
       (canvasRef.current as HTMLCanvasElement).height -
@@ -149,6 +195,34 @@ export const Game: React.FC = () => {
     playerSpriteSheetInstance.updateCurrentFrame(timestamp);
   };
 
+  const updatePlayerPosition = (event: KeyboardEvent) => {
+    switch (event.key) {
+      case "ArrowLeft":
+        if (
+          (playerRef.current.x as number) >
+          backgroundSpriteSheetInstance.spriteWidth *
+            canvasGlobalInformations.current.centerTilePerRow! -
+            playerSpriteSheetInstance.spriteWidth
+        ) {
+          playerRef.current.x =
+            (playerRef.current.x as number) -
+            playerSpriteSheetInstance.spriteWidth;
+        }
+        break;
+      case "ArrowRight":
+        if (
+          (playerRef.current.x as number) <
+          backgroundSpriteSheetInstance.spriteWidth *
+            canvasGlobalInformations.current.centerTilePerRow!
+        ) {
+          playerRef.current.x =
+            (playerRef.current.x as number) +
+            playerSpriteSheetInstance.spriteWidth;
+        }
+        break;
+    }
+  };
+
   const drawBackground = async (ctx: CanvasRenderingContext2D) => {
     const backgroundArray = backgroundRef.current as number[][];
     for (let col = 0; col < backgroundArray.length; col++) {
@@ -157,8 +231,11 @@ export const Game: React.FC = () => {
         const x = row * backgroundSpriteSheetInstance.spriteWidth;
         const y = col * backgroundSpriteSheetInstance.spriteHeight;
 
-        const spriteX = tileIndex > 0 && tileIndex < 2 ? 64 : 0;
-        const spriteY = tileIndex > 1 ? 128 : 0;
+        const { spriteX, spriteY } = getSpriteCoordinates(
+          tileIndex,
+          backgroundSpriteSheetInstance.spriteWidth,
+          backgroundSpriteSheetInstance.spriteHeight,
+        );
 
         await backgroundSpriteSheetInstance.draw({
           ctx,
@@ -172,9 +249,14 @@ export const Game: React.FC = () => {
   };
 
   const drawScore = (ctx: CanvasRenderingContext2D) => {
-    ctx.font = "24px sans-serif";
+    const cordinate = 16;
+    ctx.font = "18px Arial";
     ctx.fillStyle = "white";
-    ctx.fillText(`Score: ${canvasGlobalInformations.current.score}`, 16, 32);
+    ctx.fillText(
+      `Score: ${canvasGlobalInformations.current.score}`,
+      cordinate,
+      cordinate * 2,
+    );
   };
 
   const drawCoin = async (ctx: CanvasRenderingContext2D) => {
@@ -187,7 +269,7 @@ export const Game: React.FC = () => {
   const drawPlayer = async (ctx: CanvasRenderingContext2D) => {
     await playerSpriteSheetInstance.draw({
       ctx,
-      x: playerRef.current.x,
+      x: playerRef.current.x as number,
       y: playerRef.current.y,
     });
   };
@@ -224,14 +306,15 @@ export const Game: React.FC = () => {
 
     animationId = requestAnimationFrame((timestamp) => animate(timestamp, ctx));
 
+    window.addEventListener("keydown", updatePlayerPosition);
+
     const coinInterval = setInterval(() => {
-      const x =
-        Math.random() < 0.5
-          ? 64 * canvasGlobalInformations.current.centerTilePerRow! -
-            playerSpriteSheetInstance.spriteWidth
-          : 64 * canvasGlobalInformations.current.centerTilePerRow! +
-            2 * playerSpriteSheetInstance.spriteWidth;
-      const y = -coinSpriteSheetInstance.spriteHeight; // Spawn out of screen
+      const x = generateCoinX({
+        playerSpriteSheetInstance,
+        backgroundSpriteSheetInstance,
+        canvasGlobalInformations,
+      });
+      const y = -coinSpriteSheetInstance.spriteHeight;
 
       if (coinRef.current.length < 10)
         coinRef.current.push({ x, y, id: Date.now() });
@@ -239,6 +322,7 @@ export const Game: React.FC = () => {
 
     return () => {
       cancelAnimationFrame(animationId as number);
+      removeEventListener("keydown", updatePlayerPosition);
       clearInterval(coinInterval);
     };
   }, []);
