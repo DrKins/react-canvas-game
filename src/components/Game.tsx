@@ -75,9 +75,9 @@ export const Game: React.FC = () => {
           i <= canvasGlobalInformations.current.centerTilePerRow + 2
             ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
               i <= canvasGlobalInformations.current.centerTilePerRow + 1
-              ? 128
-              : randomIntFromInterval(132, 135)
-            : 96,
+              ? randomIntFromInterval(128, 129)
+              : randomIntFromInterval(129, 135)
+            : randomIntFromInterval(96, 103),
       ),
     ),
   );
@@ -178,7 +178,7 @@ export const Game: React.FC = () => {
   };
 
   const updateBackground = async (timestamp: number) => {
-    if (timestamp - canvasGlobalInformations.current.lastMapTimestamp > 95) {
+    if (timestamp - canvasGlobalInformations.current.lastMapTimestamp > 65) {
       canvasGlobalInformations.current.lastMapTimestamp = timestamp;
       const newRow = Array.from(
         { length: canvasGlobalInformations.current.mapTotalRows },
@@ -187,9 +187,11 @@ export const Game: React.FC = () => {
           i <= canvasGlobalInformations.current.centerTilePerRow + 2
             ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
               i <= canvasGlobalInformations.current.centerTilePerRow + 1
-              ? 128
-              : randomIntFromInterval(132, 135)
-            : 96,
+              ? randomIntFromInterval(128, 129)
+              : randomIntFromInterval(129, 135)
+            : Math.random() > 0.5
+            ? randomIntFromInterval(96, 103)
+            : randomIntFromInterval(0, 7),
       );
       backgroundRef.current?.unshift(newRow);
       backgroundRef.current?.pop();
