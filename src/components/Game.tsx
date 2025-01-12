@@ -81,6 +81,15 @@ export const Game: React.FC = () => {
       ),
     ),
   );
+
+  const treesRef = useRef<ObjectStats[]>([
+    {
+      x: 100,
+      y: 500,
+      id: Date.now(),
+    },
+  ]);
+
   const playerRef = useRef<
     ObjectStats | { x: number | null; y: number; id: number }
   >({
@@ -106,6 +115,14 @@ export const Game: React.FC = () => {
     lastFrame: 256,
     lastFrameTime: 0,
     movementSpeed: 0,
+  });
+
+  const treesSpriteSheetInstance = new SpriteSheet({
+    url: "/src/assets/assets.png",
+    spriteWidth: 140,
+    spriteHeight: 150,
+    totalCols: 3,
+    totalRows: 3,
   });
 
   // Player sprite sheet
@@ -296,6 +313,14 @@ export const Game: React.FC = () => {
     });
   };
 
+  const drawTree = async (ctx: CanvasRenderingContext2D) => {
+    await treesSpriteSheetInstance.draw({
+      ctx,
+      x: treesRef.current[0].x as number,
+      y: treesRef.current[0].y as number,
+    });
+  };
+
   const update = (timestamp: number) => {
     updatePlayer(timestamp);
     updateCoin(timestamp);
@@ -307,6 +332,7 @@ export const Game: React.FC = () => {
     ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
 
     await drawBackground(ctx);
+    await drawTree(ctx);
     await drawCoin(ctx);
     await drawPlayer(ctx);
     drawScore(ctx);
