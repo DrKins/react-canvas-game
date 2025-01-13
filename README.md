@@ -1,16 +1,16 @@
 # React Canvas Game 🎮
 
-A simple 2D game created with React and HTML5 Canvas. The player, represented by a **small baby sprite**, moves horizontally to collide with **gold coins**. Golden coins move toward the player, and when a collision occurs, the coin is destroyed, 2 is added to score.
+A simple 2D game created with React and HTML5 Canvas. The player, represented by a **small baby sprite**, moves horizontally to collide with **gold coins**. Golden coins move toward the player, and when a collision occurs, the coin is destroyed, 1 is added to score.
 
 ---
 
 ## 🔠 Features
 
-- **Player Movement:** Use the keyboard to move the yellow circle horizontally across the canvas.
+- **Player Movement:** Use the keyboard to move the player horizontally across the canvas.
 - **Points Generation:** gold coins appear dynamically and move toward the player.
 - **Collision Detection:** Destroy coin when they collide with the player.
-- **Gameplay Limit:** 5 seconds delay between coin spawn.
-- **Infinite Generation:** Path and map are infinitely generated.
+- **Gameplay Limit:** 100px between coin spawn.
+- **Infinite Generation:** Trees, coins and boxes are infinitely generated.
 
 ---
 
@@ -18,6 +18,7 @@ A simple 2D game created with React and HTML5 Canvas. The player, represented by
 
 1. Use the **arrow keys** keys to move the running baby.
 2. Destroy coins by making contact with them.
+3. Make sure to avoid wooden boxes that will block path.
 
 ---
 
@@ -74,10 +75,10 @@ react-canvas-game/
 
 - **Obstacle Behavior:**
 
-  - Each slime moves toward the player at a constant speed.
+  - Each box moves toward the player at a constant speed.
 
 - **Collision Detection:**
-  - When the player (yellow circle) collides with a black box, the box is destroyed and removed from the canvas.
+  - When the player collides with a box, the player is pushed, game will end when player is out of screen.
 
 ---
 
@@ -93,13 +94,13 @@ react-canvas-game/
 
 - Introduce difficulty levels with faster box speeds.
 - Include sound effects and visual animations for collisions.
-- Add functionality for pausing and restarting the game.
+- Add better generation of levels.
 
 ---
 
 ## 🗄️ Screenshot
 
-![Game Screenshot](https://imgur.com/Ys5hwNJ.png)  
+![Game Screenshot](https://i.imgur.com/wPKaJNL.png)  
 _A simple gameplay experience!_
 
 ---

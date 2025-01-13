@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
-import { intersectsRect, randomIntFromInterval } from "../utils";
-import { SpriteSheet } from "../utils/createSpriteSheet";
+import { intersectsRect, randomIntFromInterval, SpriteSheet } from "../utils";
 
 interface ObjectStats {
   x: number;

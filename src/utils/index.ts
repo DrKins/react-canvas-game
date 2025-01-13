@@ -1,10 +1,5 @@
-import { generateSpriteSheetInformations } from "./generateSpriteSheetInformations";
+import { SpriteSheet } from "./createSpriteSheet";
 import { intersects, intersectsRect } from "./intersects";
 import { randomIntFromInterval } from "./randomIntFromInterval";
 
-export {
-  generateSpriteSheetInformations,
-  intersects,
-  intersectsRect,
-  randomIntFromInterval,
-};
+export { intersects, intersectsRect, randomIntFromInterval, SpriteSheet };
