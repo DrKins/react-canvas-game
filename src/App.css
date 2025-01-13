@@ -71,7 +71,7 @@
   align-items: flex-end;
   padding: 4rem;
   height: 100vh;
-  background-image: url("/bg1.jpeg");
+  background-image: url("/bg1.webp");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center left;
@@ -79,13 +79,13 @@
 
 .end-page {
   display: flex;
-  background-color: #654a05;
+  background-color: #fff;
   flex-direction: column;
   justify-content: center;
   align-items: flex-end;
   padding: 4rem;
   height: 100vh;
-  background-image: url("/fail.jpeg");
+  background-image: url("/fail.jpg");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center left;
@@ -106,28 +106,28 @@
   font-size: 1.5em;
   font-weight: bold;
   color: initial;
-  color: #ffb703;
+  color: #000;
 }
 .end-game-text__score {
   font-size: 1em;
   font-weight: 600;
-  color: white;
+  color: #000;
 }
 
 .end-game-text__button {
   margin-top: 16px;
   padding: 8px 16px;
-  border: 1px solid #ffb703;
+  border: 1px solid #000;
   border-radius: 4px;
   background-color: transparent;
-  color: #ffb703;
+  color: #000;
   cursor: pointer;
   font-size: 16px;
   font-weight: normal;
 }
 
 .end-game-text__button:hover {
-  background-color: #ffb703;
+  background-color: #000;
   color: #fff;
-  border: 1px solid #ffb703;
+  border: 1px solid #000;
 }

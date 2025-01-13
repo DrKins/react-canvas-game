@@ -28,31 +28,28 @@ function App() {
         <div
           className="end-game-text__button"
           onClick={() => {
-            window.location.reload();
+            setGameState("playing");
           }}>
-          Back to main menu
+          Play again
+        </div>
+        <div
+          className="end-game-text__button"
+          onClick={() => {
+            setGameState("idle");
+          }}>
+          Main menu
         </div>
       </section>
     );
   }
 
-  if (gameState === "playing") return <Game />;
-  // return (
-  //   <div>
-  //     {
-  //       <section className="header-info">
-  //         <h1 className="title">React game</h1>
-  //         <div className="score">Score: {score}</div>
-  //       </section>
-  //     }
-  //     <Canvas
-  //       setScore={() => {
-  //         setScore((prev) => prev + 1);
-  //       }}
-  //       endGame={() => setGameState("end")}
-  //     />
-  //   </div>
-  // );
+  if (gameState === "playing")
+    return (
+      <Game
+        setGameState={() => setGameState("end")}
+        setScore={() => setScore((prev) => prev + 1)}
+      />
+    );
 }
 
 export default App;

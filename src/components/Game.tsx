@@ -55,7 +55,10 @@ function generateCoinX({
       playerOffset;
 }
 
-export const Game: React.FC = () => {
+export const Game: React.FC<{
+  setGameState: () => void;
+  setScore: () => void;
+}> = ({ setGameState, setScore }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const canvasGlobalInformations = useRef<CanvasInformations>({
@@ -89,7 +92,7 @@ export const Game: React.FC = () => {
   const treesRef = useRef<
     ObjectStats[] | { x: number; y: number; id: number; spriteX: number }[]
   >(
-    Array.from({ length: 10 }, (_, i) => ({
+    Array.from({ length: 100 }, (_, i) => ({
       x:
         Math.random() > 0.5
           ? randomIntFromInterval(
@@ -235,7 +238,10 @@ export const Game: React.FC = () => {
       )
         coinRef.current.splice(index, 1);
 
-      if (isColliding) canvasGlobalInformations.current.score += 1;
+      if (isColliding) {
+        setScore();
+        canvasGlobalInformations.current.score += 1;
+      }
 
       coin.y += 2;
       coinSpriteSheetInstance.updateCurrentFrame(timestamp);
@@ -282,7 +288,7 @@ export const Game: React.FC = () => {
       (canvasRef.current as HTMLCanvasElement).height +
         playerSpriteSheetInstance.spriteHeight
     )
-      window.location.reload();
+      setGameState();
 
     const playerOffset = 4;
     if (playerRef.current.x === null)
@@ -295,7 +301,7 @@ export const Game: React.FC = () => {
       playerRef.current.y >
       (canvasRef.current as HTMLCanvasElement).height / 2
     ) {
-      playerRef.current.y = playerRef.current.y - 0.25;
+      playerRef.current.y = playerRef.current.y - 1;
     }
 
     boxesRef.current.forEach((box) => {
@@ -341,9 +347,41 @@ export const Game: React.FC = () => {
             canvasGlobalInformations.current.centerTilePerRow! -
             playerSpriteSheetInstance.spriteWidth
         ) {
-          playerRef.current.x =
-            (playerRef.current.x as number) -
-            playerSpriteSheetInstance.spriteWidth;
+          const wouldCollideLeft = boxesRef.current.some((box) => {
+            return intersectsRect({
+              rect1: {
+                x:
+                  (playerRef.current.x as number) -
+                  playerSpriteSheetInstance.spriteWidth +
+                  (playerSpriteSheetInstance.spriteWidth -
+                    playerSpriteSheetInstance.spriteWidth / 2) /
+                    2,
+                y: playerRef.current.y,
+                width:
+                  (playerSpriteSheetInstance.spriteWidth / 2) *
+                  playerSpriteSheetInstance.scale,
+                height:
+                  playerSpriteSheetInstance.spriteHeight *
+                  playerSpriteSheetInstance.scale,
+              },
+              rect2: {
+                x: box.x,
+                y: box.y,
+                width:
+                  boxesSpriteSheetInstance.spriteWidth *
+                  boxesSpriteSheetInstance.scale,
+                height:
+                  boxesSpriteSheetInstance.spriteHeight *
+                  boxesSpriteSheetInstance.scale,
+              },
+            });
+          });
+
+          if (!wouldCollideLeft) {
+            playerRef.current.x =
+              (playerRef.current.x as number) -
+              playerSpriteSheetInstance.spriteWidth;
+          }
         }
         break;
       case "ArrowRight":
@@ -352,11 +390,43 @@ export const Game: React.FC = () => {
           backgroundSpriteSheetInstance.spriteWidth *
             canvasGlobalInformations.current.centerTilePerRow!
         ) {
-          playerRef.current.x =
-            (playerRef.current.x as number) +
-            playerSpriteSheetInstance.spriteWidth;
+          const wouldCollideRight = boxesRef.current.some((box) => {
+            return intersectsRect({
+              rect1: {
+                x:
+                  (playerRef.current.x as number) +
+                  playerSpriteSheetInstance.spriteWidth -
+                  (playerSpriteSheetInstance.spriteWidth -
+                    playerSpriteSheetInstance.spriteWidth / 2) /
+                    2,
+                y: playerRef.current.y,
+                width:
+                  (playerSpriteSheetInstance.spriteWidth / 2) *
+                  playerSpriteSheetInstance.scale,
+                height:
+                  playerSpriteSheetInstance.spriteHeight *
+                  playerSpriteSheetInstance.scale,
+              },
+              rect2: {
+                x: box.x,
+                y: box.y,
+                width:
+                  boxesSpriteSheetInstance.spriteWidth *
+                  boxesSpriteSheetInstance.scale,
+                height:
+                  boxesSpriteSheetInstance.spriteHeight *
+                  boxesSpriteSheetInstance.scale,
+              },
+            });
+          });
+
+          if (!wouldCollideRight) {
+            playerRef.current.x =
+              (playerRef.current.x as number) +
+              playerSpriteSheetInstance.spriteWidth;
+          }
+          break;
         }
-        break;
     }
   };
 
@@ -392,7 +462,7 @@ export const Game: React.FC = () => {
     ctx.fillText(
       `Score: ${canvasGlobalInformations.current.score}`,
       cordinate,
-      cordinate * 2,
+      cordinate * 3,
     );
   };
 
@@ -487,7 +557,7 @@ export const Game: React.FC = () => {
         canvasGlobalInformations,
       });
       const lastCoin = coinRef.current[coinRef.current.length - 1];
-      const y = lastCoin ? lastCoin.y - 200 : -300;
+      const y = lastCoin ? lastCoin.y - 100 : 0;
 
       if (coinRef.current.length < 10)
         coinRef.current.push({ x, y, id: Date.now() });
