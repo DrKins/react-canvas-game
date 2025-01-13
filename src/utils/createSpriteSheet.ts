@@ -75,6 +75,7 @@ export class SpriteSheet {
   }) {
     await this.loadPromise;
     // draw the sprite
+
     ctx.drawImage(
       this.spritesheet,
       spriteX ?? this.currentFrame * this.spriteWidth,

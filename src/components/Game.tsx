@@ -15,6 +15,7 @@ interface CanvasInformations {
   centerTilePerCol: number;
   score: number;
   lastMapTimestamp: number;
+  lastTreeTimestamp: number;
 }
 
 interface generateCoinX {
@@ -64,6 +65,7 @@ export const Game: React.FC = () => {
     centerTilePerCol: Math.ceil(window.innerHeight / 32 / 2),
     score: 0,
     lastMapTimestamp: 0,
+    lastTreeTimestamp: 0,
   });
 
   const backgroundRef = useRef<number[][] | null>(
@@ -71,31 +73,59 @@ export const Game: React.FC = () => {
       Array.from(
         { length: canvasGlobalInformations.current.mapTotalRows },
         (_, i) =>
-          i >= canvasGlobalInformations.current.centerTilePerRow - 2 && //this targets outer rows so it is edge of path
+          i >= canvasGlobalInformations.current.centerTilePerRow - 2 &&
           i <= canvasGlobalInformations.current.centerTilePerRow + 2
-            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
+            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 &&
               i <= canvasGlobalInformations.current.centerTilePerRow + 1
-              ? randomIntFromInterval(128, 129)
-              : randomIntFromInterval(129, 135)
-            : randomIntFromInterval(96, 103),
+              ? 33
+              : i === canvasGlobalInformations.current.centerTilePerRow + 2
+              ? 160
+              : 162
+            : 161,
       ),
     ),
   );
 
-  const treesRef = useRef<ObjectStats[]>([
-    {
-      x: 100,
-      y: 500,
-      id: Date.now(),
-    },
-  ]);
+  const treesRef = useRef<
+    ObjectStats[] | { x: number; y: number; id: number; spriteX: number }[]
+  >(
+    Array.from({ length: 10 }, (_, i) => ({
+      x:
+        Math.random() > 0.5
+          ? randomIntFromInterval(
+              0,
+              (canvasGlobalInformations.current.centerTilePerRow - 6) * 32,
+            )
+          : randomIntFromInterval(
+              (canvasGlobalInformations.current.centerTilePerRow + 5) * 32,
+              (canvasGlobalInformations.current.mapTotalRows - 1) * 32,
+            ),
+      y: -50 * i,
+      id: i,
+      spriteX: Math.random() > 0.5 ? 0 : 64,
+    })),
+  );
+
+  const boxesRef = useRef<ObjectStats[]>(
+    Array.from({ length: 5 }, (_, i) => ({
+      x:
+        Math.random() < 0.33
+          ? 32 * (canvasGlobalInformations.current.centerTilePerRow - 1)
+          : Math.random() < 0.66
+          ? 32 * (canvasGlobalInformations.current.centerTilePerRow + 1)
+          : 32 * canvasGlobalInformations.current.centerTilePerRow,
+      y: -100 * i,
+      id: i,
+    })),
+  );
 
   const playerRef = useRef<
-    ObjectStats | { x: number | null; y: number; id: number }
+    ObjectStats | { x: number | null; y: number; id: number; speed: number }
   >({
     x: null,
     y: window.innerHeight,
     id: Date.now(),
+    speed: 1,
   });
 
   const coinRef = useRef<ObjectStats[]>([]);
@@ -104,11 +134,11 @@ export const Game: React.FC = () => {
 
   // Background sprite sheet
   const backgroundSpriteSheetInstance = new SpriteSheet({
-    url: "/src/assets/field.png",
+    url: "/src/assets/terrain.png",
     spriteWidth: 32,
     spriteHeight: 32,
-    totalCols: 16,
-    totalRows: 16,
+    totalCols: 4,
+    totalRows: 10,
     scale: 1,
     spawnInterval: 0,
     currentFrame: 0,
@@ -119,17 +149,31 @@ export const Game: React.FC = () => {
 
   const treesSpriteSheetInstance = new SpriteSheet({
     url: "/src/assets/assets.png",
-    spriteWidth: 140,
-    spriteHeight: 150,
+    spriteWidth: 64,
+    spriteHeight: 96,
     totalCols: 3,
     totalRows: 3,
+  });
+
+  const boxesSpriteSheetInstance = new SpriteSheet({
+    url: "/src/assets/props.png",
+    spriteWidth: 32,
+    spriteHeight: 48,
+    totalCols: 5,
+    totalRows: 3,
+    scale: 1,
+    spawnInterval: 100,
+    currentFrame: 0,
+    lastFrame: 8,
+    lastFrameTime: 0,
+    movementSpeed: 0,
   });
 
   // Player sprite sheet
   const playerSpriteSheetInstance = new SpriteSheet({
     url: "/src/assets/player.png",
     spriteWidth: 32,
-    spriteHeight: 32,
+    spriteHeight: 34,
     totalCols: 1,
     totalRows: 24,
     scale: 1.25,
@@ -159,10 +203,14 @@ export const Game: React.FC = () => {
     coinRef.current.forEach((coin, index) => {
       const isColliding = intersectsRect({
         rect1: {
-          x: playerRef.current.x as number,
+          x:
+            (playerRef.current.x as number) +
+            (playerSpriteSheetInstance.spriteWidth -
+              playerSpriteSheetInstance.spriteWidth / 2) /
+              2,
           y: playerRef.current.y,
           width:
-            playerSpriteSheetInstance.spriteWidth *
+            (playerSpriteSheetInstance.spriteWidth / 2) *
             playerSpriteSheetInstance.scale,
           height:
             playerSpriteSheetInstance.spriteHeight *
@@ -189,33 +237,53 @@ export const Game: React.FC = () => {
 
       if (isColliding) canvasGlobalInformations.current.score += 1;
 
-      coin.y += 4; // Move the coin downwards
+      coin.y += 2;
       coinSpriteSheetInstance.updateCurrentFrame(timestamp);
     });
   };
 
-  const updateBackground = async (timestamp: number) => {
-    if (timestamp - canvasGlobalInformations.current.lastMapTimestamp > 65) {
-      canvasGlobalInformations.current.lastMapTimestamp = timestamp;
-      const newRow = Array.from(
-        { length: canvasGlobalInformations.current.mapTotalRows },
-        (_, i) =>
-          i >= canvasGlobalInformations.current.centerTilePerRow - 2 && //this targets outer rows so it is edge of path
-          i <= canvasGlobalInformations.current.centerTilePerRow + 2
-            ? i >= canvasGlobalInformations.current.centerTilePerRow - 1 && //This targets the middle three row
-              i <= canvasGlobalInformations.current.centerTilePerRow + 1
-              ? randomIntFromInterval(128, 129)
-              : randomIntFromInterval(129, 135)
-            : Math.random() > 0.5
-            ? randomIntFromInterval(96, 103)
-            : randomIntFromInterval(0, 7),
-      );
-      backgroundRef.current?.unshift(newRow);
-      backgroundRef.current?.pop();
-    }
+  const updateBoxes = () => {
+    boxesRef.current?.forEach((box) => {
+      if (box.y > (canvasRef.current as HTMLCanvasElement).height) {
+        box.y = -100;
+        box.x =
+          Math.random() < 0.33
+            ? 32 * (canvasGlobalInformations.current.centerTilePerRow - 1)
+            : Math.random() < 0.66
+            ? 32 * (canvasGlobalInformations.current.centerTilePerRow + 1)
+            : 32 * canvasGlobalInformations.current.centerTilePerRow;
+      }
+      box.y += 2;
+    });
+  };
+
+  const updateTrees = () => {
+    treesRef.current?.forEach((tree) => {
+      if (tree.y > (canvasRef.current as HTMLCanvasElement).height) {
+        tree.y = -100;
+        tree.x =
+          Math.random() > 0.5
+            ? randomIntFromInterval(
+                32,
+                (canvasGlobalInformations.current.centerTilePerRow - 3) * 32,
+              )
+            : randomIntFromInterval(
+                (canvasGlobalInformations.current.centerTilePerRow + 3) * 32,
+                (canvasGlobalInformations.current.mapTotalRows - 3) * 32,
+              );
+      }
+      tree.y += 2;
+    });
   };
 
   const updatePlayer = (timestamp: number) => {
+    if (
+      playerRef.current.y >
+      (canvasRef.current as HTMLCanvasElement).height +
+        playerSpriteSheetInstance.spriteHeight
+    )
+      window.location.reload();
+
     const playerOffset = 4;
     if (playerRef.current.x === null)
       playerRef.current.x =
@@ -225,11 +293,41 @@ export const Game: React.FC = () => {
 
     if (
       playerRef.current.y >
-      (canvasRef.current as HTMLCanvasElement).height -
-        playerSpriteSheetInstance.spriteHeight * 6
+      (canvasRef.current as HTMLCanvasElement).height / 2
     ) {
-      playerRef.current.y = playerRef.current.y - 0.5;
+      playerRef.current.y = playerRef.current.y - 0.25;
     }
+
+    boxesRef.current.forEach((box) => {
+      const isColliding = intersectsRect({
+        rect1: {
+          x:
+            (playerRef.current.x as number) +
+            (playerSpriteSheetInstance.spriteWidth -
+              playerSpriteSheetInstance.spriteWidth / 2) /
+              2,
+          y: playerRef.current.y,
+          width:
+            (playerSpriteSheetInstance.spriteWidth / 2) *
+            playerSpriteSheetInstance.scale,
+          height:
+            playerSpriteSheetInstance.spriteHeight *
+            playerSpriteSheetInstance.scale,
+        },
+        rect2: {
+          x: box.x,
+          y: box.y,
+          width:
+            boxesSpriteSheetInstance.spriteWidth *
+            boxesSpriteSheetInstance.scale,
+          height:
+            boxesSpriteSheetInstance.spriteHeight *
+            boxesSpriteSheetInstance.scale,
+        },
+      });
+
+      if (isColliding) playerRef.current.y = playerRef.current.y + playerOffset;
+    });
 
     playerSpriteSheetInstance.updateCurrentFrame(timestamp);
   };
@@ -289,8 +387,8 @@ export const Game: React.FC = () => {
 
   const drawScore = (ctx: CanvasRenderingContext2D) => {
     const cordinate = 16;
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "white";
+    ctx.font = "36px sans-serif";
+    ctx.fillStyle = "black";
     ctx.fillText(
       `Score: ${canvasGlobalInformations.current.score}`,
       cordinate,
@@ -314,17 +412,41 @@ export const Game: React.FC = () => {
   };
 
   const drawTree = async (ctx: CanvasRenderingContext2D) => {
-    await treesSpriteSheetInstance.draw({
-      ctx,
-      x: treesRef.current[0].x as number,
-      y: treesRef.current[0].y as number,
-    });
+    const trees = treesRef.current as {
+      x: number;
+      y: number;
+      id: number;
+      spriteX: number;
+    }[];
+    for (let i = trees.length - 1; i >= 0; i--) {
+      const tree = trees[i];
+      await treesSpriteSheetInstance.draw({
+        ctx,
+        x: tree.x,
+        y: tree.y,
+        spriteX: tree.spriteX,
+      });
+    }
+  };
+  const drawBoxes = async (ctx: CanvasRenderingContext2D) => {
+    const boxes: ObjectStats[] = boxesRef.current;
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const box = boxes[i];
+      await boxesSpriteSheetInstance.draw({
+        ctx,
+        x: box.x,
+        y: box.y,
+        spriteX: 160,
+        spriteY: 18,
+      });
+    }
   };
 
   const update = (timestamp: number) => {
     updatePlayer(timestamp);
     updateCoin(timestamp);
-    updateBackground(timestamp);
+    updateTrees();
+    updateBoxes();
   };
 
   const draw = async (ctx: CanvasRenderingContext2D) => {
@@ -334,6 +456,7 @@ export const Game: React.FC = () => {
     await drawBackground(ctx);
     await drawTree(ctx);
     await drawCoin(ctx);
+    await drawBoxes(ctx);
     await drawPlayer(ctx);
     drawScore(ctx);
   };
@@ -363,7 +486,8 @@ export const Game: React.FC = () => {
         backgroundSpriteSheetInstance,
         canvasGlobalInformations,
       });
-      const y = -coinSpriteSheetInstance.spriteHeight;
+      const lastCoin = coinRef.current[coinRef.current.length - 1];
+      const y = lastCoin ? lastCoin.y - 200 : -300;
 
       if (coinRef.current.length < 10)
         coinRef.current.push({ x, y, id: Date.now() });
